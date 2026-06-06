@@ -892,6 +892,11 @@
   <!-- STEP 3 & 4: 결과 -->
   <div class="result-section" id="resultSection">
 
+    <!-- 처음으로 버튼 -->
+    <div style="text-align:right; margin-bottom:12px;">
+      <button class="btn-secondary" onclick="resetAll()" style="font-size:0.82rem;">🏠 처음으로</button>
+    </div>
+
     <!-- 탭 -->
     <div class="result-tabs">
       <button class="tab-btn active" onclick="showTab('ocr')">📝 원문 검토</button>
@@ -965,6 +970,9 @@
 
         <div id="quizEmpty" style="color:var(--text2); text-align:center; padding:20px; font-size:0.9rem;">
           요약을 먼저 생성해주세요
+          <div style="margin-top:12px;">
+            <button class="btn-secondary" onclick="loadSavedQuizzes()" style="font-size:0.82rem;">📂 저장된 문제 불러오기</button>
+          </div>
         </div>
 
         <div id="quizControls" class="hidden" style="margin-bottom:16px;">
@@ -1266,37 +1274,15 @@
         inlineData: { mimeType: 'image/jpeg', data: b64 }
       }));
 
-      const prompt = `당신은 ${grade} 학생의 공부를 도와주는 선생님입니다.
-이 교재 이미지를 분석해주세요.
+      // 1단계: 텍스트 추출
+      const extractPrompt = `이 교재 이미지에서 텍스트를 정확하게 추출해주세요. 보이는 글자를 그대로 옮기세요. 수식은 x^2, sqrt(4), 1/2 형태로 표현하세요. 추출된 텍스트만 출력하세요.`;
+      const extractedText = await callGemini([...imageParts, { text: extractPrompt }]);
+      state.ocrText = extractedText;
 
-반드시 아래 JSON 형식으로만 응답하세요:
-{
-  "isMath": true 또는 false,
-  "text": "이미지에서 추출한 텍스트 내용 (수식은 텍스트로 표현, 예: x^2, sqrt(4), 1/2)"
-}
-
-isMath 판단 기준:
-- 수학 공식, 방정식, 계산 문제, 수학 개념 → true
-- 국어/영어/사회/과학 등 일반 텍스트 → false
-
-JSON만 출력하세요. 다른 설명 없이.`;
-
-      const response = await callGemini([...imageParts, { text: prompt }]);
-
-      let cleaned = response.replace(/```json|```/g, '').trim();
-      const si = cleaned.indexOf('{');
-      const ei = cleaned.lastIndexOf('}');
-      if (si !== -1 && ei !== -1) cleaned = cleaned.substring(si, ei + 1);
-
-      let parsed;
-      try {
-        parsed = JSON.parse(cleaned);
-      } catch {
-        parsed = { isMath: false, text: response };
-      }
-
-      state.ocrText = parsed.text || response;
-      state.isMath = parsed.isMath || false;
+      // 2단계: 수학 여부 판단
+      document.getElementById('loadingText').textContent = '내용 분석 중...';
+      const mathCheck = await callGemini([{ text: `다음 텍스트가 수학 문제나 수학 개념 설명이면 "yes", 아니면 "no"만 답하세요.\n\n${extractedText.slice(0, 200)}` }]);
+      state.isMath = mathCheck.toLowerCase().includes('yes');
 
       document.getElementById('loadingWrap').style.display = 'none';
       document.getElementById('resultSection').style.display = 'block';
@@ -1678,6 +1664,63 @@ ${state.ocrText}
     document.getElementById('ttsKeyInput').value = state.ttsKey || '';
     card.scrollIntoView({ behavior: 'smooth' });
   }
+
+  // ==================== 처음으로 ====================
+  function resetAll() {
+    saveQuizzes();
+    state.image = null;
+    state.imageBase64 = '';
+    state.rois = [];
+    state.ocrText = '';
+    state.isMath = false;
+    state.summaryGenerated = false;
+    state.answered = {};
+
+    document.getElementById('uploadCard').classList.remove('hidden');
+    document.getElementById('roiCard').classList.add('hidden');
+    document.getElementById('loadingWrap').style.display = 'none';
+    document.getElementById('resultSection').style.display = 'none';
+    document.getElementById('verifyCard').style.display = 'none';
+    document.getElementById('summaryBtn').style.display = 'none';
+    document.getElementById('quizControls').classList.add('hidden');
+    document.getElementById('quizEmpty').style.display = 'block';
+    document.getElementById('summaryContent').innerHTML = '<div style="color:var(--text2); text-align:center; padding:20px;">원문 검토를 완료하면 요약이 생성돼요</div>';
+    document.getElementById('quizList').innerHTML = '';
+    document.getElementById('scoreBar').style.display = 'none';
+    document.querySelector('.result-tabs').innerHTML = `
+      <button class="tab-btn active" onclick="showTab('ocr')">📝 원문 검토</button>
+      <button class="tab-btn" onclick="showTab('summary')">📌 요약</button>
+      <button class="tab-btn" onclick="showTab('quiz')">❓ 문제풀기</button>
+    `;
+    setStep(1);
+    showToast('처음으로 돌아왔어요! 문제는 저장됐어요');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ==================== 문제 누적 저장 ====================
+  function saveQuizzes() {
+    if (state.quizzes.length === 0) return;
+    const key = `studytool_quizzes_${state.profile}`;
+    const existing = JSON.parse(localStorage.getItem(key) || '[]');
+    const merged = [...existing, ...state.quizzes];
+    localStorage.setItem(key, JSON.stringify(merged.slice(-200)));
+    state.quizzes = [];
+  }
+
+  function loadSavedQuizzes() {
+    const key = `studytool_quizzes_${state.profile}`;
+    const saved = JSON.parse(localStorage.getItem(key) || '[]');
+    if (saved.length > 0) {
+      state.quizzes = saved;
+      renderQuizzes();
+      document.getElementById('scoreBar').style.display = 'flex';
+      document.getElementById('quizControls').classList.remove('hidden');
+      document.getElementById('quizEmpty').style.display = 'none';
+      updateScore();
+      showToast(`저장된 문제 ${saved.length}개 불러왔어요!`);
+    }
+  }
+
   function skipVerify() {
     document.getElementById('verifyCard').style.display = 'none';
     showToast('넘어갔어요! 요약을 생성해봐요');
