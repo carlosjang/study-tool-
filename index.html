@@ -1338,17 +1338,17 @@ JSON만 출력하세요. 다른 설명 없이.`;
     } catch (err) {
       document.getElementById('loadingWrap').style.display = 'none';
       document.getElementById('roiCard').classList.remove('hidden');
-      showToast('오류가 발생했어요: ' + err.message);
+      const errMsg = `오류: ${err.message}\n\nAPI키 앞 10자: ${state.apiKey?.substring(0,10)}...\n\n상세: ${err.toString()}`;
+      showToast('오류 발생 - 화면 확인');
+      alert(errMsg);
       console.error(err);
     }
   }
 
-  // ==================== Gemini API ====================
+  // ==================== Gemini API (프록시 경유) ====================
   async function callGemini(parts, systemPrompt) {
-    const messages = [{ role: 'user', parts }];
-
     const body = {
-      contents: messages,
+      contents: [{ role: 'user', parts }],
       generationConfig: {
         temperature: 0.4,
         maxOutputTokens: 4096
@@ -1359,18 +1359,19 @@ JSON만 출력하세요. 다른 설명 없이.`;
       body.systemInstruction = { parts: [{ text: systemPrompt }] };
     }
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${state.apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      }
-    );
+    const res = await fetch('/api/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'gemini',
+        apiKey: state.apiKey,
+        body
+      })
+    });
 
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error?.message || 'API 오류');
+      throw new Error(err.error?.message || err.error || 'API 오류');
     }
 
     const data = await res.json();
@@ -1798,7 +1799,6 @@ ${grade} 수준에 맞게, 계산식은 텍스트로 표현해주세요 (예: x^
   }
   async function speakText(text) {
     if (!state.ttsKey) {
-      // 브라우저 기본 TTS fallback
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'ko-KR';
       utter.rate = 0.95;
@@ -1810,13 +1810,17 @@ ${grade} 수준에 맞게, 계산식은 텍스트로 표현해주세요 (예: x^
     }
 
     try {
-      const res = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${state.ttsKey}`, {
+      const res = await fetch('/api/proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          input: { text },
-          voice: { languageCode: 'ko-KR', name: 'ko-KR-Wavenet-A', ssmlGender: 'FEMALE' },
-          audioConfig: { audioEncoding: 'MP3', speakingRate: 0.95, pitch: 1.0 }
+          type: 'tts',
+          apiKey: state.ttsKey,
+          body: {
+            input: { text },
+            voice: { languageCode: 'ko-KR', name: 'ko-KR-Wavenet-A', ssmlGender: 'FEMALE' },
+            audioConfig: { audioEncoding: 'MP3', speakingRate: 0.95, pitch: 1.0 }
+          }
         })
       });
       const data = await res.json();
@@ -1826,7 +1830,6 @@ ${grade} 수준에 맞게, 계산식은 텍스트로 표현해주세요 (예: x^
       }
     } catch (err) {
       console.error('TTS 오류:', err);
-      // fallback
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'ko-KR';
       speechSynthesis.speak(utter);
