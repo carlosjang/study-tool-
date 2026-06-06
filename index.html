@@ -915,6 +915,10 @@
           <button class="btn-secondary" onclick="confirmOcr()">✅ 확인 완료</button>
         </div>
       </div>
+      <!-- 다음 단계 네비게이션 -->
+      <button class="btn-primary" onclick="confirmOcr()" style="margin-top:8px;">
+        📌 요약 보러 가기 →
+      </button>
     </div>
 
     <!-- 요약 탭 -->
@@ -927,24 +931,18 @@
           방금 읽은 내용에서 <strong style="color:var(--text);">생각나는 거 아무거나</strong> 말하거나 입력해봐요.<br>
           완벽하지 않아도 괜찮아요!
         </div>
-
-        <!-- AI 음성 설명 버튼 -->
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
           <button class="btn-secondary" onclick="speakExplanation()" id="speakBtn">
             🔊 AI 설명 듣기
           </button>
           <span id="speakStatus" style="font-size:0.82rem; color:var(--text2);"></span>
         </div>
-
-        <!-- 입력창 (Claude 스타일) -->
         <div class="chat-input-wrap">
           <textarea class="chat-input" id="verifyInput" placeholder="생각나는 내용 입력... (Enter로 제출)" rows="1" onkeydown="handleVerifyKey(event)" oninput="autoResize(this)"></textarea>
           <button class="mic-btn" id="micBtn" onclick="toggleMic()" title="음성 입력">🎤</button>
           <button class="send-btn" onclick="submitVerify()">➤</button>
         </div>
-
         <div id="verifyResult" style="display:none; margin-top:14px; padding:14px; border-radius:10px; font-size:0.9rem; line-height:1.7;"></div>
-
         <div style="margin-top:12px; text-align:right;">
           <button class="btn-secondary" onclick="skipVerify()" style="font-size:0.82rem; color:var(--text2);">⏭️ 그냥 넘기기</button>
         </div>
@@ -961,6 +959,10 @@
           📌 요약 생성하기
         </button>
       </div>
+      <!-- 다음 단계 네비게이션 -->
+      <button class="btn-primary" onclick="showTab('quiz')" style="margin-top:8px; background:linear-gradient(135deg, var(--accent2), #f74a8a);">
+        ❓ 문제 풀러 가기 →
+      </button>
     </div>
 
     <!-- 문제 탭 -->
@@ -1003,6 +1005,10 @@
         <div id="quizList"></div>
 
       </div>
+      <!-- 처음으로 네비게이션 -->
+      <button class="btn-primary" onclick="resetAll()" style="margin-top:8px; background:linear-gradient(135deg, #4a4a6a, #6a4af7);">
+        🏠 처음으로 (새 사진 찍기)
+      </button>
     </div>
 
   </div>
@@ -1531,6 +1537,11 @@ ${state.ocrText}
         </div>
         <div id="hint-${q.id}" style="display:none;margin-top:10px;padding:10px 14px;background:rgba(247,106,138,0.08);border-radius:8px;font-size:0.88rem;line-height:1.6;color:var(--accent2);"></div>
       ` : '';
+      // 해설: 정답일 때만 자동으로 보여줌, 오답은 답보기 버튼 누를 때만
+      const showExp = answered && answered.correct;
+      const expContent = answered
+        ? `✅ 정답: <strong>${q.answer}</strong>${q.explanation ? '<br>💡 ' + q.explanation : ''}`
+        : '';
 
       if (q.type === 'multiple') {
         const opts = (q.options || []).map((opt) => {
@@ -1548,7 +1559,7 @@ ${state.ocrText}
             <div class="q-text">${q.question}</div>
             <div class="q-options">${opts}</div>
             ${answered ? wrongBtns : answerBtn}
-            <div class="q-answer-reveal" id="exp-${q.id}" ${answered && answered.correct ? 'style="display:block"' : ''}>
+            <div class="q-answer-reveal" id="exp-${q.id}" ${showExp ? 'style="display:block"' : ''}>
               💡 ${q.explanation || ''}
             </div>
           </div>`;
@@ -1561,8 +1572,8 @@ ${state.ocrText}
             <input class="q-input" id="inp-${q.id}" placeholder="정답 입력 (기호는 x^2, sqrt(4) 등으로)" ${answered ? 'disabled' : ''} value="${answered ? answered.selected : ''}">
             ${!answered ? `<button class="q-submit" onclick="submitFill('${q.id}')" style="margin-top:8px;">제출</button>` : ''}
             ${answered ? wrongBtns : answerBtn}
-            <div class="q-answer-reveal" id="exp-${q.id}" ${answered && answered.correct ? 'style="display:block"' : ''}>
-              ✅ 정답: <strong>${q.answer}</strong>${q.explanation ? '<br>💡 ' + q.explanation : ''}
+            <div class="q-answer-reveal" id="exp-${q.id}" ${showExp ? 'style="display:block"' : ''}>
+              ${expContent}
             </div>
           </div>`;
 
@@ -1574,8 +1585,8 @@ ${state.ocrText}
             <input class="q-input" id="inp-${q.id}" placeholder="정답 입력 (기호는 x^2, 1/2 등으로)" ${answered ? 'disabled' : ''} value="${answered ? answered.selected : ''}">
             ${!answered ? `<button class="q-submit" onclick="submitShort('${q.id}')" style="margin-top:8px;">제출</button>` : ''}
             ${answered ? wrongBtns : answerBtn}
-            <div class="q-answer-reveal" id="exp-${q.id}" ${answered && answered.correct ? 'style="display:block"' : ''}>
-              ✅ 정답: <strong>${q.answer}</strong>${q.explanation ? '<br>💡 ' + q.explanation : ''}
+            <div class="q-answer-reveal" id="exp-${q.id}" ${showExp ? 'style="display:block"' : ''}>
+              ${expContent}
             </div>
           </div>`;
       }
@@ -1840,8 +1851,11 @@ ${grade} 수준에 맞게, 계산식은 텍스트로 표현해주세요 (예: x^
     const q = state.quizzes.find(q => q.id === qid);
     if (!q) return;
     const expDiv = document.getElementById('exp-' + qid);
-    if (expDiv) expDiv.style.display = 'block';
-    if (q.answer) speakText('정답은 ' + q.answer + '예요.');
+    if (expDiv) {
+      expDiv.innerHTML = `✅ 정답: <strong>${q.answer}</strong>${q.explanation ? '<br>💡 ' + q.explanation : ''}`;
+      expDiv.style.display = 'block';
+    }
+    speakText('정답은 ' + q.answer + '예요.');
   }
   // 현재 재생 중인 오디오 추적
   let currentAudio = null;
