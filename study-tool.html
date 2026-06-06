@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공부도우미</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Black+Han+Sans&display=swap');
+
+  :root {
+    --bg: #0f0f14;
+    --surface: #1a1a24;
+    --surface2: #22222f;
+    --accent: #7c6af7;
+    --accent2: #f76a8a;
+    --accent3: #6af7c8;
+    --text: #eeeef5;
+    --text2: #9999bb;
+    --border: #2e2e42;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nanum Gothic', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* 배경 효과 */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(124,106,247,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(247,106,138,0.06) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* 헤더 */
+  header {
+    text-align: center;
+    padding: 32px 0 28px;
+  }
+
+  .logo {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 2rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -1px;
+  }
+
+  .logo span {
+    font-size: 1.4rem;
+    display: block;
+    font-family: 'Nanum Gothic', sans-serif;
+    font-weight: 700;
+    color: var(--text2);
+    -webkit-text-fill-color: var(--text2);
+    margin-top: 4px;
+  }
+
+  /* 프로필 선택 */
+  .profile-bar {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 28px;
+  }
+
+  .profile-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 50px;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    font-family: 'Nanum Gothic', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .profile-btn.active {
+    border-color: var(--accent);
+    background: rgba(124,106,247,0.15);
+    color: var(--text);
+  }
+
+  .profile-btn .emoji { font-size: 1.2rem; }
+
+  /* 단계 표시 */
+  .steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 28px;
+  }
+
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .step-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--text2);
+    transition: all 0.3s;
+  }
+
+  .step.active .step-dot {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: white;
+  }
+
+  .step.done .step-dot {
+    border-color: var(--accent3);
+    background: var(--accent3);
+    color: #0f0f14;
+  }
+
+  .step-label {
+    font-size: 0.7rem;
+    color: var(--text2);
+    font-weight: 700;
+  }
+
+  .step.active .step-label { color: var(--accent); }
+  .step.done .step-label { color: var(--accent3); }
+
+  .step-line {
+    width: 40px;
+    height: 2px;
+    background: var(--border);
+    margin-bottom: 20px;
+    transition: background 0.3s;
+  }
+
+  .step-line.done { background: var(--accent3); }
+
+  /* 카드 */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    transition: all 0.3s;
+  }
+
+  .card-title {
+    font-weight: 800;
+    font-size: 1rem;
+    color: var(--text2);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title .icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(124,106,247,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+  }
+
+  /* 업로드 영역 */
+  .upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .upload-area:hover, .upload-area.dragover {
+    border-color: var(--accent);
+    background: rgba(124,106,247,0.05);
+  }
+
+  .upload-area input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .upload-icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+  .upload-text {
+    font-weight: 800;
+    font-size: 1rem;
+    margin-bottom: 6px;
+  }
+
+  .upload-sub {
+    font-size: 0.85rem;
+    color: var(--text2);
+  }
+
+  .upload-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    justify-content: center;
+  }
+
+  .btn-upload-type {
+    padding: 10px 20px;
+    border-radius: 50px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: 'Nanum Gothic', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-upload-type:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .btn-upload-type input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  /* 이미지 미리보기 + ROI */
+  .preview-wrap {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+    user-select: none;
+  }
+
+  #previewImg {
+    width: 100%;
+    display: block;
+    border-radius: 12px;
+  }
+
+  #roiCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+    border-radius: 12px;
+  }
+
+  .roi-guide {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .roi-list {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .roi-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+  }
+
+  .roi-item .roi-num {
+    background: var(--accent);
+    color: white;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .roi-item .roi-info {
+    flex: 1;
+    margin-left: 10px;
+    color: var(--text2);
+  }
+
+  .roi-delete {
+    background: none;
+    border: none;
+    color: var(--accent2);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .roi-delete:hover { background: rgba(247,106,138,0.15); }
+
+  /* 버튼 */
+  .btn-primary {
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent), #9b6af7);
+    color: white;
+    font-family: 'Nanum Gothic', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(124,106,247,0.3);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .btn-secondary {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: 'Nanum Gothic', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* 로딩 */
+  .loading-wrap {
+    text-align: center;
+    padding: 40px;
+    display: none;
+  }
+
+  .loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    color: var(--text2);
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+
+  /* 결과 영역 */
+  .result-section { display: none; }
+
+  .result-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 16px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    background: none;
+    color: var(--text2);
+    font-family: 'Nanum Gothic', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* OCR 텍스트 */
+  .ocr-text {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 0.9rem;
+    line-height: 1.8;
+    color: var(--text);
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+  }
+
+  textarea.ocr-edit {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 0.9rem;
+    line-height: 1.8;
+    color: var(--text);
+    font-family: 'Nanum Gothic', sans-serif;
+    resize: vertical;
+    min-height: 200px;
+    outline: none;
+    display: none;
+  }
+
+  /* 요약 */
+  .summary-box {
+    background: rgba(124,106,247,0.08);
+    border: 1px solid rgba(124,106,247,0.2);
+    border-radius: 10px;
+    padding: 16px;
+    line-height: 1.9;
+    font-size: 0.92rem;
+    margin-bottom: 16px;
+  }
+
+  .highlight-tag {
+    display: inline;
+    background: rgba(247,106,138,0.2);
+    border-bottom: 2px solid var(--accent2);
+    padding: 1px 2px;
+    border-radius: 3px;
+    font-weight: 700;
+  }
+
+  /* 문제 */
+  .question-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 14px;
+    transition: border-color 0.2s;
+  }
+
+  .question-card.correct { border-color: var(--accent3); }
+  .question-card.wrong { border-color: var(--accent2); }
+
+  .q-number {
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-weight: 800;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .q-text {
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 14px;
+  }
+
+  .q-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .q-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+  }
+
+  .q-option:hover { border-color: var(--accent); background: rgba(124,106,247,0.08); }
+  .q-option.selected { border-color: var(--accent); background: rgba(124,106,247,0.12); }
+  .q-option.correct-ans { border-color: var(--accent3); background: rgba(106,247,200,0.1); color: var(--accent3); }
+  .q-option.wrong-ans { border-color: var(--accent2); background: rgba(247,106,138,0.1); color: var(--accent2); }
+
+  .q-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'Nanum Gothic', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .q-input:focus { border-color: var(--accent); }
+
+  .q-answer-reveal {
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: rgba(106,247,200,0.08);
+    border-radius: 8px;
+    font-size: 0.88rem;
+    color: var(--accent3);
+    display: none;
+    line-height: 1.6;
+  }
+
+  .q-submit {
+    margin-top: 12px;
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: none;
+    color: var(--accent);
+    font-family: 'Nanum Gothic', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .q-submit:hover { background: rgba(124,106,247,0.15); }
+
+  /* 점수 */
+  .score-bar {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .score-num {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 2rem;
+    background: linear-gradient(135deg, var(--accent3), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .score-label { font-size: 0.85rem; color: var(--text2); font-weight: 700; }
+
+  /* 알림 */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 12px 24px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    transition: transform 0.3s;
+    z-index: 999;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* API 키 설정 */
+  .api-notice {
+    background: rgba(247,106,138,0.08);
+    border: 1px solid rgba(247,106,138,0.2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 0.85rem;
+    color: var(--text2);
+    margin-bottom: 16px;
+    line-height: 1.7;
+  }
+
+  .api-key-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: monospace;
+    font-size: 0.85rem;
+    outline: none;
+    margin-bottom: 10px;
+  }
+
+  .api-key-input:focus { border-color: var(--accent); }
+
+  /* 숨기기 */
+  .hidden { display: none !important; }
+
+  /* 반응형 */
+  @media (max-width: 480px) {
+    .logo { font-size: 1.6rem; }
+    .step-line { width: 24px; }
+    .steps { gap: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo">
+      📚 공부도우미
+      <span>AI 학습 분석 도구</span>
+    </div>
+  </header>
+
+  <!-- 프로필 선택 -->
+  <div class="profile-bar">
+    <button class="profile-btn active" onclick="setProfile('daughter')" id="btn-daughter">
+      <span class="emoji">👧</span> 누나 (중2)
+    </button>
+    <button class="profile-btn" onclick="setProfile('son')" id="btn-son">
+      <span class="emoji">👦</span> 남동생 (초5)
+    </button>
+  </div>
+
+  <!-- 단계 표시 -->
+  <div class="steps">
+    <div class="step active" id="step1">
+      <div class="step-dot">1</div>
+      <div class="step-label">업로드</div>
+    </div>
+    <div class="step-line" id="line1"></div>
+    <div class="step" id="step2">
+      <div class="step-dot">2</div>
+      <div class="step-label">영역지정</div>
+    </div>
+    <div class="step-line" id="line2"></div>
+    <div class="step" id="step3">
+      <div class="step-dot">3</div>
+      <div class="step-label">검토</div>
+    </div>
+    <div class="step-line" id="line3"></div>
+    <div class="step" id="step4">
+      <div class="step-dot">4</div>
+      <div class="step-label">학습</div>
+    </div>
+  </div>
+
+  <!-- API 키 입력 -->
+  <div class="card" id="apiCard">
+    <div class="card-title"><div class="icon">🔑</div> Gemini API 키 설정</div>
+    <div class="api-notice">
+      처음 한 번만 입력하면 돼요. 브라우저에 저장되니까 다음에는 자동으로 불러와요.<br>
+      aistudio.google.com에서 무료로 발급받을 수 있어요.
+    </div>
+    <input type="password" class="api-key-input" id="apiKeyInput" placeholder="AIza... (Gemini API 키 붙여넣기)">
+    <button class="btn-secondary" onclick="saveApiKey()">저장하기</button>
+    <span id="apiStatus" style="margin-left:10px; font-size:0.85rem; color: var(--accent3);"></span>
+  </div>
+
+  <!-- STEP 1: 이미지 업로드 -->
+  <div class="card" id="uploadCard">
+    <div class="card-title"><div class="icon">📸</div> 1단계 · 교재 사진 업로드</div>
+
+    <div class="upload-area" id="uploadArea">
+      <div class="upload-icon">📖</div>
+      <div class="upload-text">여기를 눌러서 사진을 선택하세요</div>
+      <div class="upload-sub">교과서, 문제집, 학습지 모두 가능해요</div>
+      <div class="upload-buttons">
+        <label class="btn-upload-type">
+          📷 카메라로 찍기
+          <input type="file" accept="image/*" capture="environment" onchange="handleFile(this.files[0])">
+        </label>
+        <label class="btn-upload-type">
+          🖼️ 갤러리에서 선택
+          <input type="file" accept="image/*" onchange="handleFile(this.files[0])">
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: ROI 선택 -->
+  <div class="card hidden" id="roiCard">
+    <div class="card-title"><div class="icon">✂️</div> 2단계 · 분석할 영역 지정</div>
+    <div class="roi-guide">드래그해서 분석할 텍스트 영역을 선택하세요 (여러 개 가능)</div>
+
+    <div style="margin-top: 12px;">
+      <div class="preview-wrap" id="previewWrap">
+        <img id="previewImg" alt="업로드된 이미지">
+        <canvas id="roiCanvas"></canvas>
+      </div>
+    </div>
+
+    <div class="roi-list" id="roiList"></div>
+
+    <div style="display:flex; gap:10px; margin-top:14px;">
+      <button class="btn-secondary" onclick="clearRois()">전체 지우기</button>
+      <button class="btn-secondary" onclick="useFullImage()">전체 이미지 사용</button>
+    </div>
+
+    <button class="btn-primary" id="analyzeBtn" onclick="startAnalysis()" disabled>
+      🤖 AI 분석 시작하기
+    </button>
+  </div>
+
+  <!-- 로딩 -->
+  <div class="loading-wrap" id="loadingWrap">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">AI가 교재 내용을 분석하고 있어요...</div>
+  </div>
+
+  <!-- STEP 3 & 4: 결과 -->
+  <div class="result-section" id="resultSection">
+
+    <!-- 탭 -->
+    <div class="result-tabs">
+      <button class="tab-btn active" onclick="showTab('ocr')">📝 원문 검토</button>
+      <button class="tab-btn" onclick="showTab('summary')">📌 요약</button>
+      <button class="tab-btn" onclick="showTab('quiz')">❓ 문제풀기</button>
+    </div>
+
+    <!-- OCR 탭 -->
+    <div class="tab-content active" id="tab-ocr">
+      <div class="card">
+        <div class="card-title"><div class="icon">📝</div> 3단계 · 내용 검토 및 수정</div>
+        <div class="ocr-text" id="ocrText"></div>
+        <textarea class="ocr-edit" id="ocrEdit"></textarea>
+        <div style="display:flex; gap:10px; margin-top: 12px;">
+          <button class="btn-secondary" id="editToggleBtn" onclick="toggleEdit()">✏️ 수정하기</button>
+          <button class="btn-secondary" onclick="confirmOcr()">✅ 확인 완료</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 요약 탭 -->
+    <div class="tab-content" id="tab-summary">
+      <div class="card">
+        <div class="card-title"><div class="icon">📌</div> 핵심 요약 & 중요 포인트</div>
+        <div class="summary-box" id="summaryContent">
+          <div style="color:var(--text2); text-align:center; padding:20px;">
+            원문 검토를 완료하면 요약이 생성돼요
+          </div>
+        </div>
+        <button class="btn-primary" onclick="generateSummary()" id="summaryBtn" style="display:none;">
+          📌 요약 생성하기
+        </button>
+      </div>
+    </div>
+
+    <!-- 문제 탭 -->
+    <div class="tab-content" id="tab-quiz">
+      <div class="card">
+        <div class="card-title"><div class="icon">❓</div> 4단계 · 문제 풀기</div>
+
+        <div id="quizEmpty" style="color:var(--text2); text-align:center; padding:20px; font-size:0.9rem;">
+          요약을 먼저 생성해주세요
+        </div>
+
+        <div id="quizControls" class="hidden" style="margin-bottom:16px;">
+          <div class="score-bar" id="scoreBar" style="display:none;">
+            <div>
+              <div class="score-num" id="scoreNum">0/0</div>
+              <div class="score-label">맞춘 문제</div>
+            </div>
+            <button class="btn-secondary" onclick="generateQuiz()">🔄 새 문제 추가</button>
+          </div>
+
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+            <button class="btn-secondary" onclick="generateQuiz()" id="genQuizBtn">✨ 문제 생성하기</button>
+            <select id="quizCount" style="padding:9px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:'Nanum Gothic',sans-serif; font-size:0.85rem;">
+              <option value="5">5문제</option>
+              <option value="10" selected>10문제</option>
+              <option value="20">20문제</option>
+            </select>
+            <select id="quizType" style="padding:9px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:'Nanum Gothic',sans-serif; font-size:0.85rem;">
+              <option value="mixed">혼합형</option>
+              <option value="multiple">객관식만</option>
+              <option value="fill">빈칸채우기만</option>
+              <option value="short">단답형만</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="quizList"></div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 토스트 -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ==================== 상태 ====================
+  let state = {
+    profile: 'daughter',
+    apiKey: '',
+    image: null,
+    imageBase64: '',
+    rois: [],
+    ocrText: '',
+    summaryGenerated: false,
+    quizzes: [],
+    answered: {},
+    isDrawing: false,
+    startX: 0, startY: 0,
+    tempRect: null
+  };
+
+  // ==================== 초기화 ====================
+  window.onload = () => {
+    const saved = localStorage.getItem('studytool_apikey');
+    if (saved) {
+      state.apiKey = saved;
+      document.getElementById('apiKeyInput').value = saved;
+      document.getElementById('apiStatus').textContent = '✓ 저장된 키 불러옴';
+      document.getElementById('apiCard').style.display = 'none';
+    }
+    loadProfile();
+  };
+
+  // ==================== 프로필 ====================
+  function setProfile(p) {
+    state.profile = p;
+    document.getElementById('btn-daughter').classList.toggle('active', p === 'daughter');
+    document.getElementById('btn-son').classList.toggle('active', p === 'son');
+    saveProfile();
+  }
+
+  function saveProfile() {
+    localStorage.setItem('studytool_profile', state.profile);
+  }
+
+  function loadProfile() {
+    const p = localStorage.getItem('studytool_profile');
+    if (p) setProfile(p);
+  }
+
+  // ==================== API 키 ====================
+  function saveApiKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (!key) { showToast('API 키를 입력해주세요'); return; }
+    state.apiKey = key;
+    localStorage.setItem('studytool_apikey', key);
+    document.getElementById('apiStatus').textContent = '✓ 저장됨';
+    document.getElementById('apiCard').style.display = 'none';
+    showToast('API 키가 저장됐어요!');
+  }
+
+  // ==================== 파일 업로드 ====================
+  function handleFile(file) {
+    if (!file) return;
+    if (!state.apiKey) {
+      document.getElementById('apiCard').style.display = 'block';
+      showToast('먼저 API 키를 입력해주세요');
+      return;
+    }
+    state.image = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      state.imageBase64 = e.target.result.split(',')[1];
+      document.getElementById('previewImg').src = e.target.result;
+      document.getElementById('uploadCard').classList.add('hidden');
+      document.getElementById('roiCard').classList.remove('hidden');
+      setStep(2);
+
+      setTimeout(initCanvas, 100);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ==================== ROI 캔버스 ====================
+  function initCanvas() {
+    const img = document.getElementById('previewImg');
+    const canvas = document.getElementById('roiCanvas');
+    canvas.width = img.offsetWidth;
+    canvas.height = img.offsetHeight;
+
+    canvas.onmousedown = startDraw;
+    canvas.onmousemove = duringDraw;
+    canvas.onmouseup = endDraw;
+    canvas.ontouchstart = (e) => { e.preventDefault(); startDraw(e.touches[0]); };
+    canvas.ontouchmove = (e) => { e.preventDefault(); duringDraw(e.touches[0]); };
+    canvas.ontouchend = (e) => { e.preventDefault(); endDraw(e.changedTouches[0]); };
+
+    drawRois();
+  }
+
+  function getPos(e) {
+    const canvas = document.getElementById('roiCanvas');
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) / rect.width,
+      y: (e.clientY - rect.top) / rect.height
+    };
+  }
+
+  function startDraw(e) {
+    const pos = getPos(e);
+    state.isDrawing = true;
+    state.startX = pos.x;
+    state.startY = pos.y;
+  }
+
+  function duringDraw(e) {
+    if (!state.isDrawing) return;
+    const pos = getPos(e);
+    state.tempRect = {
+      x: Math.min(state.startX, pos.x),
+      y: Math.min(state.startY, pos.y),
+      w: Math.abs(pos.x - state.startX),
+      h: Math.abs(pos.y - state.startY)
+    };
+    drawRois();
+  }
+
+  function endDraw(e) {
+    if (!state.isDrawing) return;
+    state.isDrawing = false;
+    if (state.tempRect && state.tempRect.w > 0.02 && state.tempRect.h > 0.02) {
+      state.rois.push({ ...state.tempRect });
+      updateRoiList();
+      document.getElementById('analyzeBtn').disabled = false;
+    }
+    state.tempRect = null;
+    drawRois();
+  }
+
+  function drawRois() {
+    const canvas = document.getElementById('roiCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const W = canvas.width, H = canvas.height;
+
+    state.rois.forEach((r, i) => {
+      ctx.strokeStyle = '#7c6af7';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([]);
+      ctx.strokeRect(r.x * W, r.y * H, r.w * W, r.h * H);
+      ctx.fillStyle = 'rgba(124,106,247,0.12)';
+      ctx.fillRect(r.x * W, r.y * H, r.w * W, r.h * H);
+
+      // 번호 뱃지
+      ctx.fillStyle = '#7c6af7';
+      ctx.beginPath();
+      ctx.arc(r.x * W + 14, r.y * H + 14, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(i + 1, r.x * W + 14, r.y * H + 14);
+    });
+
+    if (state.tempRect) {
+      const r = state.tempRect;
+      ctx.strokeStyle = '#f76a8a';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(r.x * W, r.y * H, r.w * W, r.h * H);
+      ctx.fillStyle = 'rgba(247,106,138,0.08)';
+      ctx.fillRect(r.x * W, r.y * H, r.w * W, r.h * H);
+    }
+  }
+
+  function updateRoiList() {
+    const list = document.getElementById('roiList');
+    list.innerHTML = state.rois.map((r, i) => `
+      <div class="roi-item">
+        <div class="roi-num">${i + 1}</div>
+        <div class="roi-info">영역 ${i + 1} · ${Math.round(r.w * 100)}% × ${Math.round(r.h * 100)}%</div>
+        <button class="roi-delete" onclick="deleteRoi(${i})">✕</button>
+      </div>
+    `).join('');
+  }
+
+  function deleteRoi(i) {
+    state.rois.splice(i, 1);
+    updateRoiList();
+    drawRois();
+    if (state.rois.length === 0) document.getElementById('analyzeBtn').disabled = true;
+  }
+
+  function clearRois() {
+    state.rois = [];
+    updateRoiList();
+    drawRois();
+    document.getElementById('analyzeBtn').disabled = true;
+  }
+
+  function useFullImage() {
+    state.rois = [{ x: 0, y: 0, w: 1, h: 1 }];
+    updateRoiList();
+    drawRois();
+    document.getElementById('analyzeBtn').disabled = false;
+  }
+
+  // ==================== ROI 크롭 ====================
+  async function cropRois() {
+    const img = document.getElementById('previewImg');
+    const naturalW = img.naturalWidth;
+    const naturalH = img.naturalHeight;
+
+    const crops = [];
+    for (const r of state.rois) {
+      const canvas = document.createElement('canvas');
+      const cw = Math.round(r.w * naturalW);
+      const ch = Math.round(r.h * naturalH);
+      canvas.width = cw;
+      canvas.height = ch;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img,
+        r.x * naturalW, r.y * naturalH, cw, ch,
+        0, 0, cw, ch
+      );
+      const b64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+      crops.push(b64);
+    }
+    return crops;
+  }
+
+  // ==================== AI 분석 ====================
+  async function startAnalysis() {
+    if (!state.apiKey) { showToast('API 키를 먼저 설정해주세요'); return; }
+
+    setStep(3);
+    document.getElementById('roiCard').classList.add('hidden');
+    document.getElementById('loadingWrap').style.display = 'block';
+    document.getElementById('loadingText').textContent = 'AI가 교재 내용을 읽고 있어요...';
+
+    try {
+      const crops = await cropRois();
+      const grade = state.profile === 'daughter' ? '중학교 2학년' : '초등학교 5학년';
+
+      // 이미지 파트 구성
+      const imageParts = crops.map(b64 => ({
+        inlineData: { mimeType: 'image/jpeg', data: b64 }
+      }));
+
+      const prompt = `당신은 ${grade} 학생의 공부를 도와주는 선생님입니다.
+이 교재 이미지에서 텍스트 내용을 정확하게 추출해주세요.
+
+규칙:
+1. 이미지에 보이는 텍스트를 그대로 옮겨주세요
+2. 표나 목록은 구조를 유지해주세요
+3. 수식은 최대한 텍스트로 표현해주세요
+4. 페이지 번호나 광고 등 불필요한 내용은 제외해주세요
+
+추출된 텍스트만 출력하세요. 다른 설명은 필요없습니다.`;
+
+      const response = await callGemini([...imageParts, { text: prompt }]);
+      state.ocrText = response;
+
+      document.getElementById('loadingWrap').style.display = 'none';
+      document.getElementById('resultSection').style.display = 'block';
+      document.getElementById('ocrText').textContent = response;
+      document.getElementById('ocrEdit').value = response;
+
+      setStep(4);
+      showToast('분석 완료! 내용을 확인해보세요');
+
+    } catch (err) {
+      document.getElementById('loadingWrap').style.display = 'none';
+      document.getElementById('roiCard').classList.remove('hidden');
+      showToast('오류가 발생했어요: ' + err.message);
+      console.error(err);
+    }
+  }
+
+  // ==================== Gemini API ====================
+  async function callGemini(parts, systemPrompt) {
+    const messages = [{ role: 'user', parts }];
+
+    const body = {
+      contents: messages,
+      generationConfig: {
+        temperature: 0.4,
+        maxOutputTokens: 4096
+      }
+    };
+
+    if (systemPrompt) {
+      body.systemInstruction = { parts: [{ text: systemPrompt }] };
+    }
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${state.apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'API 오류');
+    }
+
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
+
+  // ==================== OCR 편집 ====================
+  let isEditing = false;
+
+  function toggleEdit() {
+    isEditing = !isEditing;
+    document.getElementById('ocrText').style.display = isEditing ? 'none' : 'block';
+    document.getElementById('ocrEdit').style.display = isEditing ? 'block' : 'none';
+    document.getElementById('editToggleBtn').textContent = isEditing ? '👁️ 보기' : '✏️ 수정하기';
+  }
+
+  function confirmOcr() {
+    if (isEditing) {
+      state.ocrText = document.getElementById('ocrEdit').value;
+      document.getElementById('ocrText').textContent = state.ocrText;
+      toggleEdit();
+    } else {
+      state.ocrText = document.getElementById('ocrText').textContent;
+    }
+    document.getElementById('summaryBtn').style.display = 'flex';
+    document.getElementById('quizControls').classList.remove('hidden');
+    document.getElementById('quizEmpty').style.display = 'none';
+    showTab('summary');
+    showToast('확인 완료! 요약을 생성해볼까요?');
+  }
+
+  // ==================== 요약 생성 ====================
+  async function generateSummary() {
+    if (!state.ocrText) { showToast('먼저 내용을 확인해주세요'); return; }
+
+    document.getElementById('summaryContent').innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2)"><div class="loading-spinner" style="margin:0 auto 12px"></div>요약 생성 중...</div>';
+    document.getElementById('summaryBtn').style.display = 'none';
+
+    try {
+      const grade = state.profile === 'daughter' ? '중학교 2학년' : '초등학교 5학년';
+      const prompt = `${grade} 학생을 위해 다음 교재 내용을 분석해주세요.
+
+교재 내용:
+${state.ocrText}
+
+다음 형식으로 응답해주세요:
+
+## 핵심 요약
+(3-5문장으로 핵심 내용 요약)
+
+## 중요 개념
+(핵심 용어와 개념을 **굵게** 표시하며 간단히 설명, 5-8개)
+
+## 꼭 기억할 것
+(시험에 자주 나오는 포인트 3-5개를 불릿으로)
+
+${grade} 수준에 맞는 쉬운 말로 설명해주세요.`;
+
+      const result = await callGemini([{ text: prompt }]);
+      state.summaryGenerated = true;
+
+      // 마크다운 간단 렌더링
+      const html = result
+        .replace(/## (.+)/g, '<h3 style="font-size:0.95rem;font-weight:800;color:var(--accent);margin:16px 0 8px;">$1</h3>')
+        .replace(/\*\*(.+?)\*\*/g, '<span class="highlight-tag">$1</span>')
+        .replace(/^- (.+)/gm, '<div style="display:flex;gap:8px;margin:4px 0;"><span style="color:var(--accent2)">▸</span><span>$1</span></div>')
+        .replace(/\n/g, '<br>');
+
+      document.getElementById('summaryContent').innerHTML = html;
+      showToast('요약 완료! 문제를 풀어볼까요?');
+
+    } catch (err) {
+      document.getElementById('summaryContent').innerHTML = '<div style="color:var(--accent2);padding:20px;text-align:center;">오류가 발생했어요. 다시 시도해주세요.</div>';
+      document.getElementById('summaryBtn').style.display = 'flex';
+    }
+  }
+
+  // ==================== 문제 생성 ====================
+  async function generateQuiz() {
+    if (!state.ocrText) { showToast('먼저 내용을 확인해주세요'); return; }
+
+    const count = document.getElementById('quizCount').value;
+    const type = document.getElementById('quizType').value;
+    const grade = state.profile === 'daughter' ? '중학교 2학년' : '초등학교 5학년';
+
+    const typeDesc = {
+      mixed: '객관식(4지선다), 빈칸채우기, 단답형을 골고루 섞어서',
+      multiple: '모두 객관식(4지선다)으로',
+      fill: '모두 빈칸채우기 형식으로',
+      short: '모두 단답형으로'
+    };
+
+    document.getElementById('quizList').innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2)"><div class="loading-spinner" style="margin:0 auto 12px"></div>문제 생성 중...</div>';
+
+    try {
+      const prompt = `${grade} 학생을 위한 문제를 만들어주세요.
+
+교재 내용:
+${state.ocrText}
+
+${typeDesc[type]} ${count}문제를 만들어주세요.
+
+반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만:
+[
+  {
+    "type": "multiple",
+    "question": "문제 내용",
+    "options": ["①선택지1", "②선택지2", "③선택지3", "④선택지4"],
+    "answer": "①선택지1",
+    "explanation": "해설 내용"
+  },
+  {
+    "type": "fill",
+    "question": "___는 식물이 빛을 이용해 양분을 만드는 과정이다.",
+    "answer": "광합성",
+    "explanation": "해설 내용"
+  },
+  {
+    "type": "short",
+    "question": "문제 내용",
+    "answer": "정답",
+    "explanation": "해설 내용"
+  }
+]
+
+${grade} 수준에 맞게, 교재 내용에서만 출제해주세요.`;
+
+      const result = await callGemini([{ text: prompt }]);
+
+      // JSON 파싱
+      let cleaned = result.replace(/```json|```/g, '').trim();
+      const startIdx = cleaned.indexOf('[');
+      const endIdx = cleaned.lastIndexOf(']');
+      if (startIdx !== -1 && endIdx !== -1) {
+        cleaned = cleaned.substring(startIdx, endIdx + 1);
+      }
+
+      const quizzes = JSON.parse(cleaned);
+      state.quizzes = [...state.quizzes, ...quizzes.map((q, i) => ({
+        ...q,
+        id: Date.now() + '_' + i
+      }))];
+
+      renderQuizzes();
+      document.getElementById('scoreBar').style.display = 'flex';
+      updateScore();
+      showToast(`문제 ${quizzes.length}개가 추가됐어요!`);
+
+    } catch (err) {
+      document.getElementById('quizList').innerHTML = '<div style="color:var(--accent2);padding:20px;text-align:center;">문제 생성 중 오류가 발생했어요. 다시 시도해주세요.</div>';
+      console.error(err);
+    }
+  }
+
+  function renderQuizzes() {
+    const list = document.getElementById('quizList');
+    list.innerHTML = state.quizzes.map((q, i) => {
+      const answered = state.answered[q.id];
+      const cardClass = answered ? (answered.correct ? 'correct' : 'wrong') : '';
+
+      if (q.type === 'multiple') {
+        const opts = (q.options || []).map((opt, oi) => {
+          let cls = 'q-option';
+          if (answered) {
+            if (opt === q.answer) cls += ' correct-ans';
+            else if (answered.selected === opt) cls += ' wrong-ans';
+          } else if (!answered) {
+            cls += '';
+          }
+          return `<div class="${cls}" onclick="selectOption('${q.id}', '${opt.replace(/'/g, "\\'")}', this)" data-opt="${oi}">${opt}</div>`;
+        }).join('');
+
+        return `
+          <div class="question-card ${cardClass}" id="qcard-${q.id}">
+            <div class="q-number">문제 ${i + 1} · 객관식</div>
+            <div class="q-text">${q.question}</div>
+            <div class="q-options">${opts}</div>
+            <div class="q-answer-reveal" id="exp-${q.id}">
+              💡 ${q.explanation || ''}
+            </div>
+          </div>`;
+
+      } else if (q.type === 'fill') {
+        return `
+          <div class="question-card ${cardClass}" id="qcard-${q.id}">
+            <div class="q-number">문제 ${i + 1} · 빈칸채우기</div>
+            <div class="q-text">${q.question}</div>
+            <input class="q-input" id="inp-${q.id}" placeholder="정답을 입력하세요" ${answered ? 'disabled' : ''} value="${answered ? answered.selected : ''}">
+            ${!answered ? `<button class="q-submit" onclick="submitFill('${q.id}')">제출</button>` : ''}
+            <div class="q-answer-reveal" id="exp-${q.id}" ${answered ? 'style="display:block"' : ''}>
+              ✅ 정답: <strong>${q.answer}</strong>${q.explanation ? '<br>💡 ' + q.explanation : ''}
+            </div>
+          </div>`;
+
+      } else {
+        return `
+          <div class="question-card ${cardClass}" id="qcard-${q.id}">
+            <div class="q-number">문제 ${i + 1} · 단답형</div>
+            <div class="q-text">${q.question}</div>
+            <input class="q-input" id="inp-${q.id}" placeholder="정답을 입력하세요" ${answered ? 'disabled' : ''} value="${answered ? answered.selected : ''}">
+            ${!answered ? `<button class="q-submit" onclick="submitShort('${q.id}')">제출</button>` : ''}
+            <div class="q-answer-reveal" id="exp-${q.id}" ${answered ? 'style="display:block"' : ''}>
+              ✅ 정답: <strong>${q.answer}</strong>${q.explanation ? '<br>💡 ' + q.explanation : ''}
+            </div>
+          </div>`;
+      }
+    }).join('');
+  }
+
+  function selectOption(id, opt, el) {
+    if (state.answered[id]) return;
+    const q = state.quizzes.find(q => q.id === id);
+    if (!q) return;
+
+    const correct = opt === q.answer;
+    state.answered[id] = { selected: opt, correct };
+
+    const card = document.getElementById('qcard-' + id);
+    card.classList.add(correct ? 'correct' : 'wrong');
+
+    card.querySelectorAll('.q-option').forEach(o => {
+      if (o.textContent.trim() === q.answer.trim()) o.classList.add('correct-ans');
+      else if (o.textContent.trim() === opt.trim()) o.classList.add('wrong-ans');
+    });
+
+    document.getElementById('exp-' + id).style.display = 'block';
+    updateScore();
+    showToast(correct ? '정답!' : '틀렸어요. 해설을 확인해보세요');
+  }
+
+  function submitFill(id) {
+    const q = state.quizzes.find(q => q.id === id);
+    const inp = document.getElementById('inp-' + id);
+    const val = inp.value.trim();
+    if (!val) { showToast('정답을 입력해주세요'); return; }
+
+    const correct = val === q.answer || val.includes(q.answer) || q.answer.includes(val);
+    state.answered[id] = { selected: val, correct };
+    renderQuizzes();
+    updateScore();
+    showToast(correct ? '정답!' : `틀렸어요. 정답: ${q.answer}`);
+  }
+
+  function submitShort(id) { submitFill(id); }
+
+  function updateScore() {
+    const total = Object.keys(state.answered).length;
+    const correct = Object.values(state.answered).filter(a => a.correct).length;
+    document.getElementById('scoreNum').textContent = `${correct}/${total}`;
+  }
+
+  // ==================== 탭 ====================
+  function showTab(name) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+      b.classList.toggle('active', ['ocr','summary','quiz'][i] === name);
+    });
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+  }
+
+  // ==================== 단계 ====================
+  function setStep(n) {
+    for (let i = 1; i <= 4; i++) {
+      const s = document.getElementById('step' + i);
+      s.className = 'step' + (i < n ? ' done' : i === n ? ' active' : '');
+    }
+    for (let i = 1; i <= 3; i++) {
+      const l = document.getElementById('line' + i);
+      if (l) l.className = 'step-line' + (i < n ? ' done' : '');
+    }
+  }
+
+  // ==================== 토스트 ====================
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+</script>
+</body>
+</html>
