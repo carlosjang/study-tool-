@@ -1548,7 +1548,7 @@ ${state.ocrText}
             <div class="q-text">${q.question}</div>
             <div class="q-options">${opts}</div>
             ${answered ? wrongBtns : answerBtn}
-            <div class="q-answer-reveal" id="exp-${q.id}" ${answered ? 'style="display:block"' : ''}>
+            <div class="q-answer-reveal" id="exp-${q.id}" ${answered && answered.correct ? 'style="display:block"' : ''}>
               💡 ${q.explanation || ''}
             </div>
           </div>`;
@@ -1561,7 +1561,7 @@ ${state.ocrText}
             <input class="q-input" id="inp-${q.id}" placeholder="정답 입력 (기호는 x^2, sqrt(4) 등으로)" ${answered ? 'disabled' : ''} value="${answered ? answered.selected : ''}">
             ${!answered ? `<button class="q-submit" onclick="submitFill('${q.id}')" style="margin-top:8px;">제출</button>` : ''}
             ${answered ? wrongBtns : answerBtn}
-            <div class="q-answer-reveal" id="exp-${q.id}" ${answered ? 'style="display:block"' : ''}>
+            <div class="q-answer-reveal" id="exp-${q.id}" ${answered && answered.correct ? 'style="display:block"' : ''}>
               ✅ 정답: <strong>${q.answer}</strong>${q.explanation ? '<br>💡 ' + q.explanation : ''}
             </div>
           </div>`;
@@ -1574,7 +1574,7 @@ ${state.ocrText}
             <input class="q-input" id="inp-${q.id}" placeholder="정답 입력 (기호는 x^2, 1/2 등으로)" ${answered ? 'disabled' : ''} value="${answered ? answered.selected : ''}">
             ${!answered ? `<button class="q-submit" onclick="submitShort('${q.id}')" style="margin-top:8px;">제출</button>` : ''}
             ${answered ? wrongBtns : answerBtn}
-            <div class="q-answer-reveal" id="exp-${q.id}" ${answered ? 'style="display:block"' : ''}>
+            <div class="q-answer-reveal" id="exp-${q.id}" ${answered && answered.correct ? 'style="display:block"' : ''}>
               ✅ 정답: <strong>${q.answer}</strong>${q.explanation ? '<br>💡 ' + q.explanation : ''}
             </div>
           </div>`;
@@ -1598,7 +1598,10 @@ ${state.ocrText}
       else if (o.textContent.trim() === opt.trim()) o.classList.add('wrong-ans');
     });
 
-    document.getElementById('exp-' + id).style.display = 'block';
+    // 정답이면 해설 보여주고, 오답이면 힌트/답보기 버튼만 보여줌
+    if (correct) {
+      document.getElementById('exp-' + id).style.display = 'block';
+    }
     renderQuizzes();
     updateScore();
     if (correct) {
@@ -1840,7 +1843,17 @@ ${grade} 수준에 맞게, 계산식은 텍스트로 표현해주세요 (예: x^
     if (expDiv) expDiv.style.display = 'block';
     if (q.answer) speakText('정답은 ' + q.answer + '예요.');
   }
+  // 현재 재생 중인 오디오 추적
+  let currentAudio = null;
+
   async function speakText(text) {
+    // 현재 재생 중인 오디오 중지
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio = null;
+    }
+    speechSynthesis.cancel();
+
     if (!state.ttsKey) {
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'ko-KR';
@@ -1868,8 +1881,9 @@ ${grade} 수준에 맞게, 계산식은 텍스트로 표현해주세요 (예: x^
       });
       const data = await res.json();
       if (data.audioContent) {
-        const audio = new Audio('data:audio/mp3;base64,' + data.audioContent);
-        audio.play();
+        currentAudio = new Audio('data:audio/mp3;base64,' + data.audioContent);
+        currentAudio.play();
+        currentAudio.onended = () => { currentAudio = null; };
       }
     } catch (err) {
       console.error('TTS 오류:', err);
