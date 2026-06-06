@@ -682,6 +682,87 @@
 
   .api-key-input:focus { border-color: var(--accent); }
 
+  /* 채팅 입력창 스타일 */
+  .chat-input-wrap {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 10px 12px;
+    transition: border-color 0.2s;
+  }
+
+  .chat-input-wrap:focus-within {
+    border-color: var(--accent);
+  }
+
+  .chat-input {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-family: 'Nanum Gothic', sans-serif;
+    font-size: 0.95rem;
+    resize: none;
+    outline: none;
+    line-height: 1.5;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .chat-input::placeholder { color: var(--text2); }
+
+  .mic-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .mic-btn:hover { border-color: var(--accent); }
+  .mic-btn.recording {
+    border-color: var(--accent2);
+    background: rgba(247,106,138,0.15);
+    animation: pulse 1s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  .send-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: white;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .send-btn:hover {
+    background: #9b6af7;
+    transform: scale(1.05);
+  }
+
   /* 숨기기 */
   .hidden { display: none !important; }
 
@@ -738,12 +819,18 @@
 
   <!-- API 키 입력 -->
   <div class="card" id="apiCard">
-    <div class="card-title"><div class="icon">🔑</div> Gemini API 키 설정</div>
+    <div class="card-title"><div class="icon">🔑</div> API 키 설정</div>
     <div class="api-notice">
-      처음 한 번만 입력하면 돼요. 브라우저에 저장되니까 다음에는 자동으로 불러와요.<br>
-      aistudio.google.com에서 무료로 발급받을 수 있어요.
+      처음 한 번만 입력하면 돼요. 브라우저에 저장되니까 다음에는 자동으로 불러와요.
     </div>
-    <input type="password" class="api-key-input" id="apiKeyInput" placeholder="AIza... (Gemini API 키 붙여넣기)">
+    <div style="margin-bottom:10px;">
+      <div style="font-size:0.85rem; color:var(--text2); margin-bottom:6px; font-weight:700;">Gemini API 키 (필수)</div>
+      <input type="password" class="api-key-input" id="apiKeyInput" placeholder="AIza... (aistudio.google.com에서 발급)">
+    </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-size:0.85rem; color:var(--text2); margin-bottom:6px; font-weight:700;">Google TTS API 키 (음성 설명용)</div>
+      <input type="password" class="api-key-input" id="ttsKeyInput" placeholder="AIza... (Google Cloud Console에서 발급)">
+    </div>
     <button class="btn-secondary" onclick="saveApiKey()">저장하기</button>
     <span id="apiStatus" style="margin-left:10px; font-size:0.85rem; color: var(--accent3);"></span>
   </div>
@@ -824,6 +911,37 @@
 
     <!-- 요약 탭 -->
     <div class="tab-content" id="tab-summary">
+
+      <!-- 읽기 검증 -->
+      <div class="card" id="verifyCard" style="display:none;">
+        <div class="card-title"><div class="icon">🎤</div> 읽기 확인</div>
+        <div style="font-size:0.92rem; color:var(--text2); margin-bottom:16px; line-height:1.7;">
+          방금 읽은 내용에서 <strong style="color:var(--text);">생각나는 거 아무거나</strong> 말하거나 입력해봐요.<br>
+          완벽하지 않아도 괜찮아요!
+        </div>
+
+        <!-- AI 음성 설명 버튼 -->
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+          <button class="btn-secondary" onclick="speakExplanation()" id="speakBtn">
+            🔊 AI 설명 듣기
+          </button>
+          <span id="speakStatus" style="font-size:0.82rem; color:var(--text2);"></span>
+        </div>
+
+        <!-- 입력창 (Claude 스타일) -->
+        <div class="chat-input-wrap">
+          <textarea class="chat-input" id="verifyInput" placeholder="생각나는 내용 입력... (Enter로 제출)" rows="1" onkeydown="handleVerifyKey(event)" oninput="autoResize(this)"></textarea>
+          <button class="mic-btn" id="micBtn" onclick="toggleMic()" title="음성 입력">🎤</button>
+          <button class="send-btn" onclick="submitVerify()">➤</button>
+        </div>
+
+        <div id="verifyResult" style="display:none; margin-top:14px; padding:14px; border-radius:10px; font-size:0.9rem; line-height:1.7;"></div>
+
+        <div style="margin-top:12px; text-align:right;">
+          <button class="btn-secondary" onclick="skipVerify()" style="font-size:0.82rem; color:var(--text2);">⏭️ 그냥 넘기기</button>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title"><div class="icon">📌</div> 핵심 요약 & 중요 포인트</div>
         <div class="summary-box" id="summaryContent">
@@ -887,24 +1005,35 @@
   let state = {
     profile: 'daughter',
     apiKey: '',
+    ttsKey: '',
     image: null,
     imageBase64: '',
     rois: [],
     ocrText: '',
+    isMath: false,
     summaryGenerated: false,
     quizzes: [],
     answered: {},
     isDrawing: false,
     startX: 0, startY: 0,
-    tempRect: null
+    tempRect: null,
+    isRecording: false,
+    recognition: null
   };
 
   // ==================== 초기화 ====================
   window.onload = () => {
     const saved = localStorage.getItem('studytool_apikey');
+    const savedTts = localStorage.getItem('studytool_ttskey');
     if (saved) {
       state.apiKey = saved;
       document.getElementById('apiKeyInput').value = saved;
+    }
+    if (savedTts) {
+      state.ttsKey = savedTts;
+      document.getElementById('ttsKeyInput').value = savedTts;
+    }
+    if (saved) {
       document.getElementById('apiStatus').textContent = '✓ 저장된 키 불러옴';
       document.getElementById('apiCard').style.display = 'none';
     }
@@ -931,9 +1060,14 @@
   // ==================== API 키 ====================
   function saveApiKey() {
     const key = document.getElementById('apiKeyInput').value.trim();
-    if (!key) { showToast('API 키를 입력해주세요'); return; }
+    const ttsKey = document.getElementById('ttsKeyInput').value.trim();
+    if (!key) { showToast('Gemini API 키를 입력해주세요'); return; }
     state.apiKey = key;
     localStorage.setItem('studytool_apikey', key);
+    if (ttsKey) {
+      state.ttsKey = ttsKey;
+      localStorage.setItem('studytool_ttskey', ttsKey);
+    }
     document.getElementById('apiStatus').textContent = '✓ 저장됨';
     document.getElementById('apiCard').style.display = 'none';
     showToast('API 키가 저장됐어요!');
@@ -1125,32 +1259,78 @@
       const crops = await cropRois();
       const grade = state.profile === 'daughter' ? '중학교 2학년' : '초등학교 5학년';
 
-      // 이미지 파트 구성
       const imageParts = crops.map(b64 => ({
         inlineData: { mimeType: 'image/jpeg', data: b64 }
       }));
 
       const prompt = `당신은 ${grade} 학생의 공부를 도와주는 선생님입니다.
-이 교재 이미지에서 텍스트 내용을 정확하게 추출해주세요.
+이 교재 이미지를 분석해주세요.
 
-규칙:
-1. 이미지에 보이는 텍스트를 그대로 옮겨주세요
-2. 표나 목록은 구조를 유지해주세요
-3. 수식은 최대한 텍스트로 표현해주세요
-4. 페이지 번호나 광고 등 불필요한 내용은 제외해주세요
+반드시 아래 JSON 형식으로만 응답하세요:
+{
+  "isMath": true 또는 false,
+  "text": "이미지에서 추출한 텍스트 내용 (수식은 텍스트로 표현, 예: x^2, sqrt(4), 1/2)"
+}
 
-추출된 텍스트만 출력하세요. 다른 설명은 필요없습니다.`;
+isMath 판단 기준:
+- 수학 공식, 방정식, 계산 문제, 수학 개념 → true
+- 국어/영어/사회/과학 등 일반 텍스트 → false
+
+JSON만 출력하세요. 다른 설명 없이.`;
 
       const response = await callGemini([...imageParts, { text: prompt }]);
-      state.ocrText = response;
+
+      let cleaned = response.replace(/```json|```/g, '').trim();
+      const si = cleaned.indexOf('{');
+      const ei = cleaned.lastIndexOf('}');
+      if (si !== -1 && ei !== -1) cleaned = cleaned.substring(si, ei + 1);
+
+      let parsed;
+      try {
+        parsed = JSON.parse(cleaned);
+      } catch {
+        parsed = { isMath: false, text: response };
+      }
+
+      state.ocrText = parsed.text || response;
+      state.isMath = parsed.isMath || false;
 
       document.getElementById('loadingWrap').style.display = 'none';
       document.getElementById('resultSection').style.display = 'block';
-      document.getElementById('ocrText').textContent = response;
-      document.getElementById('ocrEdit').value = response;
+      document.getElementById('ocrText').textContent = state.ocrText;
+      document.getElementById('ocrEdit').value = state.ocrText;
+
+      if (state.isMath) {
+        showToast('수학 문제 감지! 수학 모드로 분석할게요');
+        // 수학 모드: 탭을 수학풀이로 변경
+        document.querySelector('.result-tabs').innerHTML = `
+          <button class="tab-btn active" onclick="showTab('ocr')">📝 원문 검토</button>
+          <button class="tab-btn" onclick="showTab('math')">🔢 수학 풀이</button>
+          <button class="tab-btn" onclick="showTab('quiz')">❓ 문제풀기</button>
+        `;
+        // 수학 탭 생성
+        if (!document.getElementById('tab-math')) {
+          const mathTab = document.createElement('div');
+          mathTab.className = 'tab-content';
+          mathTab.id = 'tab-math';
+          mathTab.innerHTML = `
+            <div class="card">
+              <div class="card-title"><div class="icon">🔢</div> 수학 개념 & 단계별 풀이</div>
+              <div id="mathContent">
+                <div style="color:var(--text2);text-align:center;padding:20px;">원문 검토 완료 후 생성돼요</div>
+              </div>
+              <button class="btn-primary" onclick="generateMathSolution()" id="mathBtn" style="display:none;">
+                🔢 풀이 생성하기
+              </button>
+            </div>
+          `;
+          document.getElementById('tab-summary').parentNode.insertBefore(mathTab, document.getElementById('tab-quiz'));
+        }
+      } else {
+        showToast('분석 완료! 내용을 확인해보세요');
+      }
 
       setStep(4);
-      showToast('분석 완료! 내용을 확인해보세요');
 
     } catch (err) {
       document.getElementById('loadingWrap').style.display = 'none';
@@ -1212,11 +1392,19 @@
     } else {
       state.ocrText = document.getElementById('ocrText').textContent;
     }
-    document.getElementById('summaryBtn').style.display = 'flex';
     document.getElementById('quizControls').classList.remove('hidden');
     document.getElementById('quizEmpty').style.display = 'none';
-    showTab('summary');
-    showToast('확인 완료! 요약을 생성해볼까요?');
+
+    if (state.isMath) {
+      document.getElementById('mathBtn').style.display = 'flex';
+      showTab('math');
+      showToast('수학 모드! 풀이를 생성해봐요');
+    } else {
+      document.getElementById('summaryBtn').style.display = 'flex';
+      document.getElementById('verifyCard').style.display = 'block';
+      showTab('summary');
+      showToast('확인 완료! 읽은 내용을 말하거나 입력해봐요');
+    }
   }
 
   // ==================== 요약 생성 ====================
@@ -1288,44 +1476,32 @@ ${grade} 수준에 맞는 쉬운 말로 설명해주세요.`;
 교재 내용:
 ${state.ocrText}
 
-${typeDesc[type]} ${count}문제를 만들어주세요.
+요청: ${typeDesc[type]} ${count}문제
 
-반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만:
-[
-  {
-    "type": "multiple",
-    "question": "문제 내용",
-    "options": ["①선택지1", "②선택지2", "③선택지3", "④선택지4"],
-    "answer": "①선택지1",
-    "explanation": "해설 내용"
-  },
-  {
-    "type": "fill",
-    "question": "___는 식물이 빛을 이용해 양분을 만드는 과정이다.",
-    "answer": "광합성",
-    "explanation": "해설 내용"
-  },
-  {
-    "type": "short",
-    "question": "문제 내용",
-    "answer": "정답",
-    "explanation": "해설 내용"
-  }
-]
+중요: 반드시 순수한 JSON 배열만 출력하세요. 마크다운 코드블록, 설명 텍스트, 기타 어떤 것도 포함하지 마세요.
 
-${grade} 수준에 맞게, 교재 내용에서만 출제해주세요.`;
+출력 형식 (이 형식 그대로):
+[{"type":"multiple","question":"문제","options":["①보기1","②보기2","③보기3","④보기4"],"answer":"①보기1","explanation":"해설"},{"type":"fill","question":"___은 무엇이다.","answer":"정답","explanation":"해설"},{"type":"short","question":"문제","answer":"정답","explanation":"해설"}]
+
+규칙:
+- type은 반드시 "multiple", "fill", "short" 중 하나
+- multiple은 반드시 options 배열 4개 포함
+- answer는 반드시 실제 정답 텍스트
+- 교재 내용에서만 출제
+- ${grade} 수준으로`;
 
       const result = await callGemini([{ text: prompt }]);
 
-      // JSON 파싱
-      let cleaned = result.replace(/```json|```/g, '').trim();
+      let cleaned = result.replace(/```json|```javascript|```/g, '').trim();
+      // JSON 배열 추출
       const startIdx = cleaned.indexOf('[');
       const endIdx = cleaned.lastIndexOf(']');
-      if (startIdx !== -1 && endIdx !== -1) {
-        cleaned = cleaned.substring(startIdx, endIdx + 1);
-      }
+      if (startIdx === -1 || endIdx === -1) throw new Error('JSON 배열을 찾을 수 없어요');
+      cleaned = cleaned.substring(startIdx, endIdx + 1);
 
       const quizzes = JSON.parse(cleaned);
+      if (!Array.isArray(quizzes) || quizzes.length === 0) throw new Error('문제 배열이 비어있어요');
+
       state.quizzes = [...state.quizzes, ...quizzes.map((q, i) => ({
         ...q,
         id: Date.now() + '_' + i
@@ -1337,8 +1513,12 @@ ${grade} 수준에 맞게, 교재 내용에서만 출제해주세요.`;
       showToast(`문제 ${quizzes.length}개가 추가됐어요!`);
 
     } catch (err) {
-      document.getElementById('quizList').innerHTML = '<div style="color:var(--accent2);padding:20px;text-align:center;">문제 생성 중 오류가 발생했어요. 다시 시도해주세요.</div>';
-      console.error(err);
+      console.error('문제 생성 오류:', err);
+      document.getElementById('quizList').innerHTML = `
+        <div style="color:var(--accent2);padding:20px;text-align:center;">
+          문제 생성에 실패했어요.<br>
+          <button class="btn-secondary" onclick="generateQuiz()" style="margin-top:12px;">🔄 다시 시도</button>
+        </div>`;
     }
   }
 
@@ -1347,17 +1527,25 @@ ${grade} 수준에 맞게, 교재 내용에서만 출제해주세요.`;
     list.innerHTML = state.quizzes.map((q, i) => {
       const answered = state.answered[q.id];
       const cardClass = answered ? (answered.correct ? 'correct' : 'wrong') : '';
+      const wrongBtns = answered && !answered.correct ? `
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+          <button class="q-submit" onclick="showHint('${q.id}')" style="border-color:var(--accent2);color:var(--accent2);">💡 힌트 보기</button>
+          <button class="q-submit" onclick="showAnswer('${q.id}')" style="border-color:var(--accent3);color:var(--accent3);">👁️ 답 보기</button>
+        </div>
+        <div id="hint-${q.id}" style="display:none;margin-top:10px;padding:10px 14px;background:rgba(247,106,138,0.08);border-radius:8px;font-size:0.88rem;line-height:1.6;color:var(--accent2);"></div>
+      ` : '';
+      const answerBtn = !answered ? `
+        <button class="q-submit" onclick="showAnswer('${q.id}')" style="margin-left:8px;border-color:var(--text2);color:var(--text2);">👁️ 답 보기</button>
+      ` : '';
 
       if (q.type === 'multiple') {
-        const opts = (q.options || []).map((opt, oi) => {
+        const opts = (q.options || []).map((opt) => {
           let cls = 'q-option';
           if (answered) {
             if (opt === q.answer) cls += ' correct-ans';
             else if (answered.selected === opt) cls += ' wrong-ans';
-          } else if (!answered) {
-            cls += '';
           }
-          return `<div class="${cls}" onclick="selectOption('${q.id}', '${opt.replace(/'/g, "\\'")}', this)" data-opt="${oi}">${opt}</div>`;
+          return `<div class="${cls}" onclick="selectOption('${q.id}', '${opt.replace(/'/g, "\\'")}', this)">${opt}</div>`;
         }).join('');
 
         return `
@@ -1365,7 +1553,8 @@ ${grade} 수준에 맞게, 교재 내용에서만 출제해주세요.`;
             <div class="q-number">문제 ${i + 1} · 객관식</div>
             <div class="q-text">${q.question}</div>
             <div class="q-options">${opts}</div>
-            <div class="q-answer-reveal" id="exp-${q.id}">
+            ${wrongBtns}
+            <div class="q-answer-reveal" id="exp-${q.id}" ${answered ? 'style="display:block"' : ''}>
               💡 ${q.explanation || ''}
             </div>
           </div>`;
@@ -1375,8 +1564,12 @@ ${grade} 수준에 맞게, 교재 내용에서만 출제해주세요.`;
           <div class="question-card ${cardClass}" id="qcard-${q.id}">
             <div class="q-number">문제 ${i + 1} · 빈칸채우기</div>
             <div class="q-text">${q.question}</div>
-            <input class="q-input" id="inp-${q.id}" placeholder="정답을 입력하세요" ${answered ? 'disabled' : ''} value="${answered ? answered.selected : ''}">
-            ${!answered ? `<button class="q-submit" onclick="submitFill('${q.id}')">제출</button>` : ''}
+            <input class="q-input" id="inp-${q.id}" placeholder="정답 입력 (기호는 x^2, sqrt(4) 등으로)" ${answered ? 'disabled' : ''} value="${answered ? answered.selected : ''}">
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+              ${!answered ? `<button class="q-submit" onclick="submitFill('${q.id}')">제출</button>` : ''}
+              ${answerBtn}
+            </div>
+            ${wrongBtns}
             <div class="q-answer-reveal" id="exp-${q.id}" ${answered ? 'style="display:block"' : ''}>
               ✅ 정답: <strong>${q.answer}</strong>${q.explanation ? '<br>💡 ' + q.explanation : ''}
             </div>
@@ -1387,8 +1580,12 @@ ${grade} 수준에 맞게, 교재 내용에서만 출제해주세요.`;
           <div class="question-card ${cardClass}" id="qcard-${q.id}">
             <div class="q-number">문제 ${i + 1} · 단답형</div>
             <div class="q-text">${q.question}</div>
-            <input class="q-input" id="inp-${q.id}" placeholder="정답을 입력하세요" ${answered ? 'disabled' : ''} value="${answered ? answered.selected : ''}">
-            ${!answered ? `<button class="q-submit" onclick="submitShort('${q.id}')">제출</button>` : ''}
+            <input class="q-input" id="inp-${q.id}" placeholder="정답 입력 (기호는 x^2, 1/2 등으로)" ${answered ? 'disabled' : ''} value="${answered ? answered.selected : ''}">
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+              ${!answered ? `<button class="q-submit" onclick="submitShort('${q.id}')">제출</button>` : ''}
+              ${answerBtn}
+            </div>
+            ${wrongBtns}
             <div class="q-answer-reveal" id="exp-${q.id}" ${answered ? 'style="display:block"' : ''}>
               ✅ 정답: <strong>${q.answer}</strong>${q.explanation ? '<br>💡 ' + q.explanation : ''}
             </div>
@@ -1414,8 +1611,14 @@ ${grade} 수준에 맞게, 교재 내용에서만 출제해주세요.`;
     });
 
     document.getElementById('exp-' + id).style.display = 'block';
+    renderQuizzes();
     updateScore();
-    showToast(correct ? '정답!' : '틀렸어요. 해설을 확인해보세요');
+    if (correct) {
+      speakText('정답이에요!');
+    } else {
+      speakText('틀렸어요. 힌트 버튼을 눌러봐요.');
+    }
+    showToast(correct ? '정답!' : '틀렸어요. 힌트를 눌러봐요');
   }
 
   function submitFill(id) {
@@ -1428,7 +1631,13 @@ ${grade} 수준에 맞게, 교재 내용에서만 출제해주세요.`;
     state.answered[id] = { selected: val, correct };
     renderQuizzes();
     updateScore();
-    showToast(correct ? '정답!' : `틀렸어요. 정답: ${q.answer}`);
+    if (correct) {
+      speakText('정답이에요!');
+      showToast('정답!');
+    } else {
+      speakText('틀렸어요. 힌트 버튼을 눌러봐요.');
+      showToast('틀렸어요. 힌트를 눌러봐요');
+    }
   }
 
   function submitShort(id) { submitFill(id); }
@@ -1457,6 +1666,303 @@ ${grade} 수준에 맞게, 교재 내용에서만 출제해주세요.`;
     for (let i = 1; i <= 3; i++) {
       const l = document.getElementById('line' + i);
       if (l) l.className = 'step-line' + (i < n ? ' done' : '');
+    }
+  }
+
+  // ==================== 넘기기 ====================
+  function skipVerify() {
+    document.getElementById('verifyCard').style.display = 'none';
+    showToast('넘어갔어요! 요약을 생성해봐요');
+  }
+
+  // ==================== 수학 풀이 생성 ====================
+  async function generateMathSolution() {
+    if (!state.ocrText) return;
+    const grade = state.profile === 'daughter' ? '중학교 2학년' : '초등학교 5학년';
+    const mathContent = document.getElementById('mathContent');
+    const mathBtn = document.getElementById('mathBtn');
+
+    mathContent.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2)"><div class="loading-spinner" style="margin:0 auto 12px"></div>풀이 생성 중...</div>';
+    mathBtn.style.display = 'none';
+
+    try {
+      const prompt = `${grade} 학생을 위한 수학 풀이를 만들어주세요.
+
+문제/내용:
+${state.ocrText}
+
+다음 형식으로 응답해주세요:
+
+## 개념 설명
+(이 문제에 필요한 핵심 개념을 쉽고 친근하게 2~3문장)
+
+## 단계별 풀이
+1단계: (설명과 계산식)
+2단계: (설명과 계산식)
+3단계: (설명과 계산식)
+...
+
+## 최종 답
+(답만 명확하게)
+
+## 비슷한 유형 연습 문제
+(같은 개념의 숫자만 바꾼 문제 1개와 답)
+
+${grade} 수준에 맞게, 계산식은 텍스트로 표현해주세요 (예: x^2, sqrt(4), 1/2).`;
+
+      const result = await callGemini([{ text: prompt }]);
+
+      const html = result
+        .replace(/## (.+)/g, '<h3 style="font-size:0.95rem;font-weight:800;color:var(--accent);margin:16px 0 8px;">$1</h3>')
+        .replace(/\*\*(.+?)\*\*/g, '<span class="highlight-tag">$1</span>')
+        .replace(/^(\d+단계:)/gm, '<div style="background:var(--surface2);border-left:3px solid var(--accent);padding:10px 14px;margin:8px 0;border-radius:0 8px 8px 0;font-weight:700;">$1')
+        .replace(/\n/g, '<br>');
+
+      mathContent.innerHTML = `
+        <div style="margin-bottom:14px;">
+          <button class="btn-secondary" onclick="speakMathExplanation()" style="gap:6px;">
+            🔊 개념 설명 듣기
+          </button>
+        </div>
+        <div class="summary-box">${html}</div>
+        <div style="margin-top:14px; padding:14px; background:rgba(106,247,200,0.08); border:1px solid rgba(106,247,200,0.2); border-radius:10px; display:none;" id="mathAnswer">
+        </div>
+      `;
+
+      state.mathSolution = result;
+      showToast('풀이 완성! 🔊 버튼으로 설명도 들어봐요');
+
+      // 문제 탭도 수학용으로
+      document.getElementById('quizControls').classList.remove('hidden');
+      document.getElementById('quizEmpty').style.display = 'none';
+
+    } catch (err) {
+      mathContent.innerHTML = '<div style="color:var(--accent2);padding:20px;text-align:center;">오류가 발생했어요. 다시 시도해주세요.</div>';
+      mathBtn.style.display = 'flex';
+    }
+  }
+
+  async function speakMathExplanation() {
+    if (!state.mathSolution) return;
+    // 개념 설명 부분만 추출해서 읽어주기
+    const lines = state.mathSolution.split('\n');
+    const conceptIdx = lines.findIndex(l => l.includes('개념 설명'));
+    const stepIdx = lines.findIndex(l => l.includes('단계별'));
+    const concept = lines.slice(conceptIdx + 1, stepIdx).join(' ').replace(/[#*]/g, '').trim();
+    if (concept) await speakText(concept);
+  }
+
+  // ==================== 힌트 ====================
+  async function showHint(qid) {
+    const q = state.quizzes.find(q => q.id === qid);
+    if (!q) return;
+
+    const hintDiv = document.getElementById('hint-' + qid);
+    if (!hintDiv) return;
+
+    hintDiv.style.display = 'block';
+    hintDiv.textContent = '힌트 생성 중...';
+
+    try {
+      const grade = state.profile === 'daughter' ? '중학교 2학년' : '초등학교 5학년';
+      const prompt = `${grade} 학생이 다음 문제를 틀렸어요. 답은 알려주지 말고 방향만 잡아주는 힌트를 반말로 1~2문장으로 써주세요.
+
+문제: ${q.question}
+정답: ${q.answer}
+
+힌트만 출력하세요.`;
+
+      const hint = await callGemini([{ text: prompt }]);
+      hintDiv.innerHTML = `💡 <strong>힌트:</strong> ${hint}`;
+      await speakText(hint);
+    } catch {
+      hintDiv.textContent = '힌트를 불러오지 못했어요.';
+    }
+  }
+
+  // ==================== 답 보기 ====================
+  function showAnswer(qid) {
+    const q = state.quizzes.find(q => q.id === qid);
+    if (!q) return;
+    const expDiv = document.getElementById('exp-' + qid);
+    if (expDiv) expDiv.style.display = 'block';
+    if (q.answer) speakText('정답은 ' + q.answer + '예요.');
+  }
+  async function speakText(text) {
+    if (!state.ttsKey) {
+      // 브라우저 기본 TTS fallback
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'ko-KR';
+      utter.rate = 0.95;
+      const voices = speechSynthesis.getVoices();
+      const koVoice = voices.find(v => v.lang.startsWith('ko'));
+      if (koVoice) utter.voice = koVoice;
+      speechSynthesis.speak(utter);
+      return;
+    }
+
+    try {
+      const res = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${state.ttsKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: { text },
+          voice: { languageCode: 'ko-KR', name: 'ko-KR-Wavenet-A', ssmlGender: 'FEMALE' },
+          audioConfig: { audioEncoding: 'MP3', speakingRate: 0.95, pitch: 1.0 }
+        })
+      });
+      const data = await res.json();
+      if (data.audioContent) {
+        const audio = new Audio('data:audio/mp3;base64,' + data.audioContent);
+        audio.play();
+      }
+    } catch (err) {
+      console.error('TTS 오류:', err);
+      // fallback
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'ko-KR';
+      speechSynthesis.speak(utter);
+    }
+  }
+
+  async function speakExplanation() {
+    if (!state.ocrText) return;
+    const btn = document.getElementById('speakBtn');
+    const status = document.getElementById('speakStatus');
+    btn.disabled = true;
+    status.textContent = 'AI가 설명 준비 중...';
+
+    try {
+      const grade = state.profile === 'daughter' ? '중학교 2학년' : '초등학교 5학년';
+      const prompt = `${grade} 학생에게 다음 교재 내용을 친근하고 쉽게 2~3문장으로 설명해주세요. 반말로, 자연스럽게 말하듯이 써주세요.\n\n${state.ocrText.slice(0, 500)}`;
+      const explanation = await callGemini([{ text: prompt }]);
+      status.textContent = '재생 중...';
+      await speakText(explanation);
+      status.textContent = '';
+    } catch (err) {
+      status.textContent = '오류 발생';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ==================== STT ====================
+  function toggleMic() {
+    if (state.isRecording) {
+      stopMic();
+    } else {
+      startMic();
+    }
+  }
+
+  function startMic() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showToast('이 브라우저는 음성 입력이 안 돼요. 크롬을 사용해주세요.');
+      return;
+    }
+
+    state.recognition = new SpeechRecognition();
+    state.recognition.lang = 'ko-KR';
+    state.recognition.continuous = false;
+    state.recognition.interimResults = true;
+
+    state.recognition.onstart = () => {
+      state.isRecording = true;
+      document.getElementById('micBtn').classList.add('recording');
+      document.getElementById('micBtn').textContent = '⏹';
+      showToast('듣고 있어요... 말해보세요!');
+    };
+
+    state.recognition.onresult = (e) => {
+      const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+      document.getElementById('verifyInput').value = transcript;
+      autoResize(document.getElementById('verifyInput'));
+    };
+
+    state.recognition.onend = () => {
+      stopMic();
+    };
+
+    state.recognition.onerror = (e) => {
+      stopMic();
+      if (e.error !== 'no-speech') showToast('음성 인식 오류: ' + e.error);
+    };
+
+    state.recognition.start();
+  }
+
+  function stopMic() {
+    state.isRecording = false;
+    document.getElementById('micBtn').classList.remove('recording');
+    document.getElementById('micBtn').textContent = '🎤';
+    if (state.recognition) {
+      state.recognition.stop();
+      state.recognition = null;
+    }
+  }
+
+  // ==================== 읽기 검증 ====================
+  function handleVerifyKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      submitVerify();
+    }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  async function submitVerify() {
+    const input = document.getElementById('verifyInput').value.trim();
+    if (!input) { showToast('내용을 입력해주세요'); return; }
+
+    const resultDiv = document.getElementById('verifyResult');
+    resultDiv.style.display = 'block';
+    resultDiv.style.background = 'rgba(124,106,247,0.08)';
+    resultDiv.style.borderLeft = '3px solid var(--accent)';
+    resultDiv.textContent = 'AI가 확인하고 있어요...';
+
+    try {
+      const prompt = `학생이 교재를 읽었는지 확인해주세요.
+
+교재 내용 (요약):
+${state.ocrText.slice(0, 800)}
+
+학생의 답변:
+"${input}"
+
+판단 기준:
+- 교재 내용과 조금이라도 관련 있으면 통과
+- 완전히 엉뚱하거나 교재와 전혀 관계없으면 재시도
+- 완벽할 필요 없음, 대충 읽었어도 통과
+
+아래 JSON 형식으로만 응답:
+{"pass": true 또는 false, "message": "학생에게 짧고 친근하게 반말로 피드백 (1~2문장)"}`;
+
+      const result = await callGemini([{ text: prompt }]);
+      let cleaned = result.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+
+      if (parsed.pass) {
+        resultDiv.style.background = 'rgba(106,247,200,0.08)';
+        resultDiv.style.borderLeft = '3px solid var(--accent3)';
+        resultDiv.innerHTML = `✅ ${parsed.message}<br><span style="font-size:0.82rem;color:var(--text2);margin-top:6px;display:block;">요약 생성하기 버튼을 눌러봐요!</span>`;
+        speakText(parsed.message);
+      } else {
+        resultDiv.style.background = 'rgba(247,106,138,0.08)';
+        resultDiv.style.borderLeft = '3px solid var(--accent2)';
+        resultDiv.innerHTML = `🔄 ${parsed.message}`;
+        speakText(parsed.message);
+      }
+
+      document.getElementById('verifyInput').value = '';
+      autoResize(document.getElementById('verifyInput'));
+
+    } catch (err) {
+      resultDiv.textContent = '오류가 발생했어요. 다시 시도해주세요.';
     }
   }
 
