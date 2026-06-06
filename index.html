@@ -782,6 +782,9 @@
       📚 공부도우미
       <span>AI 학습 분석 도구</span>
     </div>
+    <div style="margin-top:12px;">
+      <button class="btn-secondary" onclick="showApiSettings()" style="font-size:0.8rem; padding:6px 14px;">⚙️ API 키 설정</button>
+    </div>
   </header>
 
   <!-- 프로필 선택 -->
@@ -1669,7 +1672,13 @@ ${state.ocrText}
     }
   }
 
-  // ==================== 넘기기 ====================
+  function showApiSettings() {
+    const card = document.getElementById('apiCard');
+    card.style.display = 'block';
+    document.getElementById('apiKeyInput').value = state.apiKey || '';
+    document.getElementById('ttsKeyInput').value = state.ttsKey || '';
+    card.scrollIntoView({ behavior: 'smooth' });
+  }
   function skipVerify() {
     document.getElementById('verifyCard').style.display = 'none';
     showToast('넘어갔어요! 요약을 생성해봐요');
