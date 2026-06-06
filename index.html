@@ -1522,33 +1522,27 @@ ${state.ocrText}
     const list = document.getElementById('quizList');
     list.innerHTML = state.quizzes.map((q, i) => {
       const answered = state.answered[q.id];
+      const locked = answered && (answered.correct || answered.locked);
       const cardClass = answered ? (answered.correct ? 'correct' : 'wrong') : '';
-      const wrongBtns = answered && !answered.correct ? `
-        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+
+      // 힌트/답보기 버튼 (오답 상태거나 미답 상태)
+      const hintBtns = `
+        <div id="hint-area-${q.id}" style="display:${answered && !answered.correct ? 'flex' : 'none'};gap:8px;margin-top:10px;flex-wrap:wrap;">
           <button class="q-submit" onclick="showHint('${q.id}')" style="border-color:var(--accent2);color:var(--accent2);">💡 힌트 보기</button>
           <button class="q-submit" onclick="showAnswer('${q.id}')" style="border-color:var(--accent3);color:var(--accent3);">👁️ 답 보기</button>
         </div>
         <div id="hint-${q.id}" style="display:none;margin-top:10px;padding:10px 14px;background:rgba(247,106,138,0.08);border-radius:8px;font-size:0.88rem;line-height:1.6;color:var(--accent2);"></div>
-      ` : '';
-      const answerBtn = !answered ? `
-        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-          <button class="q-submit" onclick="showHint('${q.id}')" style="border-color:var(--accent2);color:var(--accent2);">💡 힌트 보기</button>
-          <button class="q-submit" onclick="showAnswer('${q.id}')" style="border-color:var(--text2);color:var(--text2);">👁️ 답 보기</button>
-        </div>
-        <div id="hint-${q.id}" style="display:none;margin-top:10px;padding:10px 14px;background:rgba(247,106,138,0.08);border-radius:8px;font-size:0.88rem;line-height:1.6;color:var(--accent2);"></div>
-      ` : '';
-      // 해설: 정답일 때만 자동으로 보여줌, 오답은 답보기 버튼 누를 때만
+      `;
       const showExp = answered && answered.correct;
-      const expContent = answered
-        ? `✅ 정답: <strong>${q.answer}</strong>${q.explanation ? '<br>💡 ' + q.explanation : ''}`
-        : '';
 
       if (q.type === 'multiple') {
         const opts = (q.options || []).map((opt) => {
           let cls = 'q-option';
-          if (answered) {
+          if (locked) {
             if (opt === q.answer) cls += ' correct-ans';
             else if (answered.selected === opt) cls += ' wrong-ans';
+          } else if (answered && answered.selected === opt) {
+            cls += ' wrong-ans'; // 오답 선택 표시 (재선택 가능)
           }
           return `<div class="${cls}" onclick="selectOption('${q.id}', '${opt.replace(/'/g, "\\'")}', this)">${opt}</div>`;
         }).join('');
@@ -1558,7 +1552,7 @@ ${state.ocrText}
             <div class="q-number">문제 ${i + 1} · 객관식</div>
             <div class="q-text">${q.question}</div>
             <div class="q-options">${opts}</div>
-            ${answered ? wrongBtns : answerBtn}
+            ${hintBtns}
             <div class="q-answer-reveal" id="exp-${q.id}" ${showExp ? 'style="display:block"' : ''}>
               💡 ${q.explanation || ''}
             </div>
@@ -1569,11 +1563,11 @@ ${state.ocrText}
           <div class="question-card ${cardClass}" id="qcard-${q.id}">
             <div class="q-number">문제 ${i + 1} · 빈칸채우기</div>
             <div class="q-text">${q.question}</div>
-            <input class="q-input" id="inp-${q.id}" placeholder="정답 입력 (기호는 x^2, sqrt(4) 등으로)" ${answered ? 'disabled' : ''} value="${answered ? answered.selected : ''}">
-            ${!answered ? `<button class="q-submit" onclick="submitFill('${q.id}')" style="margin-top:8px;">제출</button>` : ''}
-            ${answered ? wrongBtns : answerBtn}
+            <input class="q-input" id="inp-${q.id}" placeholder="정답 입력 (기호는 x^2, sqrt(4) 등으로)" ${locked ? 'disabled' : ''} value="${answered ? answered.selected : ''}">
+            ${!locked ? `<button class="q-submit" onclick="submitFill('${q.id}')" style="margin-top:8px;">제출</button>` : ''}
+            ${hintBtns}
             <div class="q-answer-reveal" id="exp-${q.id}" ${showExp ? 'style="display:block"' : ''}>
-              ${expContent}
+              ${showExp ? `✅ 정답: <strong>${q.answer}</strong>${q.explanation ? '<br>💡 ' + q.explanation : ''}` : ''}
             </div>
           </div>`;
 
@@ -1582,11 +1576,11 @@ ${state.ocrText}
           <div class="question-card ${cardClass}" id="qcard-${q.id}">
             <div class="q-number">문제 ${i + 1} · 단답형</div>
             <div class="q-text">${q.question}</div>
-            <input class="q-input" id="inp-${q.id}" placeholder="정답 입력 (기호는 x^2, 1/2 등으로)" ${answered ? 'disabled' : ''} value="${answered ? answered.selected : ''}">
-            ${!answered ? `<button class="q-submit" onclick="submitShort('${q.id}')" style="margin-top:8px;">제출</button>` : ''}
-            ${answered ? wrongBtns : answerBtn}
+            <input class="q-input" id="inp-${q.id}" placeholder="정답 입력 (기호는 x^2, 1/2 등으로)" ${locked ? 'disabled' : ''} value="${answered ? answered.selected : ''}">
+            ${!locked ? `<button class="q-submit" onclick="submitShort('${q.id}')" style="margin-top:8px;">제출</button>` : ''}
+            ${hintBtns}
             <div class="q-answer-reveal" id="exp-${q.id}" ${showExp ? 'style="display:block"' : ''}>
-              ${expContent}
+              ${showExp ? `✅ 정답: <strong>${q.answer}</strong>${q.explanation ? '<br>💡 ' + q.explanation : ''}` : ''}
             </div>
           </div>`;
       }
@@ -1594,33 +1588,46 @@ ${state.ocrText}
   }
 
   function selectOption(id, opt, el) {
-    if (state.answered[id]) return;
     const q = state.quizzes.find(q => q.id === id);
     if (!q) return;
+    // 이미 정답 맞췄거나 답 보기로 잠긴 경우만 막음
+    const prev = state.answered[id];
+    if (prev && (prev.correct || prev.locked)) return;
 
     const correct = opt === q.answer;
-    state.answered[id] = { selected: opt, correct };
 
-    const card = document.getElementById('qcard-' + id);
-    card.classList.add(correct ? 'correct' : 'wrong');
-
-    card.querySelectorAll('.q-option').forEach(o => {
-      if (o.textContent.trim() === q.answer.trim()) o.classList.add('correct-ans');
-      else if (o.textContent.trim() === opt.trim()) o.classList.add('wrong-ans');
-    });
-
-    // 정답이면 해설 보여주고, 오답이면 힌트/답보기 버튼만 보여줌
     if (correct) {
+      // 정답이면 잠금
+      state.answered[id] = { selected: opt, correct: true, locked: true };
+      const card = document.getElementById('qcard-' + id);
+      card.classList.remove('wrong');
+      card.classList.add('correct');
+      card.querySelectorAll('.q-option').forEach(o => {
+        o.classList.remove('wrong-ans', 'selected');
+        if (o.textContent.trim() === q.answer.trim()) o.classList.add('correct-ans');
+      });
+      document.getElementById('exp-' + id).innerHTML = `💡 ${q.explanation || ''}`;
       document.getElementById('exp-' + id).style.display = 'block';
-    }
-    renderQuizzes();
-    updateScore();
-    if (correct) {
+      renderQuizzes();
+      updateScore();
       speakText('정답이에요!');
+      showToast('정답!');
     } else {
-      speakText('틀렸어요. 힌트 버튼을 눌러봐요.');
+      // 오답이면 잠금 안 하고 빨간 표시만
+      state.answered[id] = { selected: opt, correct: false, locked: false };
+      const card = document.getElementById('qcard-' + id);
+      card.classList.remove('correct');
+      card.classList.add('wrong');
+      card.querySelectorAll('.q-option').forEach(o => {
+        o.classList.remove('wrong-ans', 'correct-ans');
+        if (o.textContent.trim() === opt.trim()) o.classList.add('wrong-ans');
+      });
+      // 힌트/답보기 버튼 보이기
+      const hintArea = document.getElementById('hint-area-' + id);
+      if (hintArea) hintArea.style.display = 'flex';
+      speakText('틀렸어요. 다시 골라보거나 힌트를 눌러봐요.');
+      showToast('틀렸어요! 다시 골라봐요');
     }
-    showToast(correct ? '정답!' : '틀렸어요. 힌트를 눌러봐요');
   }
 
   function submitFill(id) {
@@ -1850,11 +1857,21 @@ ${grade} 수준에 맞게, 계산식은 텍스트로 표현해주세요 (예: x^
   function showAnswer(qid) {
     const q = state.quizzes.find(q => q.id === qid);
     if (!q) return;
+    // 답 보기 누르면 잠금 처리
+    if (!state.answered[qid]) {
+      state.answered[qid] = { selected: '', correct: false, locked: true };
+    } else {
+      state.answered[qid].locked = true;
+    }
     const expDiv = document.getElementById('exp-' + qid);
     if (expDiv) {
       expDiv.innerHTML = `✅ 정답: <strong>${q.answer}</strong>${q.explanation ? '<br>💡 ' + q.explanation : ''}`;
       expDiv.style.display = 'block';
     }
+    // 힌트 영역 숨기기
+    const hintArea = document.getElementById('hint-area-' + qid);
+    if (hintArea) hintArea.style.display = 'none';
+    renderQuizzes();
     speakText('정답은 ' + q.answer + '예요.');
   }
   // 현재 재생 중인 오디오 추적
