@@ -1538,7 +1538,11 @@ ${state.ocrText}
         <div id="hint-${q.id}" style="display:none;margin-top:10px;padding:10px 14px;background:rgba(247,106,138,0.08);border-radius:8px;font-size:0.88rem;line-height:1.6;color:var(--accent2);"></div>
       ` : '';
       const answerBtn = !answered ? `
-        <button class="q-submit" onclick="showAnswer('${q.id}')" style="margin-left:8px;border-color:var(--text2);color:var(--text2);">👁️ 답 보기</button>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <button class="q-submit" onclick="showHint('${q.id}')" style="border-color:var(--accent2);color:var(--accent2);">💡 힌트 보기</button>
+          <button class="q-submit" onclick="showAnswer('${q.id}')" style="border-color:var(--text2);color:var(--text2);">👁️ 답 보기</button>
+        </div>
+        <div id="hint-${q.id}" style="display:none;margin-top:10px;padding:10px 14px;background:rgba(247,106,138,0.08);border-radius:8px;font-size:0.88rem;line-height:1.6;color:var(--accent2);"></div>
       ` : '';
 
       if (q.type === 'multiple') {
@@ -1556,7 +1560,7 @@ ${state.ocrText}
             <div class="q-number">문제 ${i + 1} · 객관식</div>
             <div class="q-text">${q.question}</div>
             <div class="q-options">${opts}</div>
-            ${wrongBtns}
+            ${answered ? wrongBtns : answerBtn}
             <div class="q-answer-reveal" id="exp-${q.id}" ${answered ? 'style="display:block"' : ''}>
               💡 ${q.explanation || ''}
             </div>
@@ -1568,11 +1572,8 @@ ${state.ocrText}
             <div class="q-number">문제 ${i + 1} · 빈칸채우기</div>
             <div class="q-text">${q.question}</div>
             <input class="q-input" id="inp-${q.id}" placeholder="정답 입력 (기호는 x^2, sqrt(4) 등으로)" ${answered ? 'disabled' : ''} value="${answered ? answered.selected : ''}">
-            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-              ${!answered ? `<button class="q-submit" onclick="submitFill('${q.id}')">제출</button>` : ''}
-              ${answerBtn}
-            </div>
-            ${wrongBtns}
+            ${!answered ? `<button class="q-submit" onclick="submitFill('${q.id}')" style="margin-top:8px;">제출</button>` : ''}
+            ${answered ? wrongBtns : answerBtn}
             <div class="q-answer-reveal" id="exp-${q.id}" ${answered ? 'style="display:block"' : ''}>
               ✅ 정답: <strong>${q.answer}</strong>${q.explanation ? '<br>💡 ' + q.explanation : ''}
             </div>
@@ -1584,11 +1585,8 @@ ${state.ocrText}
             <div class="q-number">문제 ${i + 1} · 단답형</div>
             <div class="q-text">${q.question}</div>
             <input class="q-input" id="inp-${q.id}" placeholder="정답 입력 (기호는 x^2, 1/2 등으로)" ${answered ? 'disabled' : ''} value="${answered ? answered.selected : ''}">
-            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-              ${!answered ? `<button class="q-submit" onclick="submitShort('${q.id}')">제출</button>` : ''}
-              ${answerBtn}
-            </div>
-            ${wrongBtns}
+            ${!answered ? `<button class="q-submit" onclick="submitShort('${q.id}')" style="margin-top:8px;">제출</button>` : ''}
+            ${answered ? wrongBtns : answerBtn}
             <div class="q-answer-reveal" id="exp-${q.id}" ${answered ? 'style="display:block"' : ''}>
               ✅ 정답: <strong>${q.answer}</strong>${q.explanation ? '<br>💡 ' + q.explanation : ''}
             </div>
@@ -1774,18 +1772,19 @@ ${grade} 수준에 맞게, 계산식은 텍스트로 표현해주세요 (예: x^
 
     try {
       const grade = state.profile === 'daughter' ? '중학교 2학년' : '초등학교 5학년';
-      const prompt = `${grade} 학생이 다음 문제를 틀렸어요. 답은 알려주지 말고 방향만 잡아주는 힌트를 반말로 1~2문장으로 써주세요.
+      const prompt = `${grade} 학생을 위해 다음 문제의 힌트를 줘. 답은 절대 알려주지 말고 방향만 잡아주는 힌트를 반말로 1~2문장으로만 써줘.
 
 문제: ${q.question}
 정답: ${q.answer}
 
-힌트만 출력하세요.`;
+힌트만 출력해.`;
 
       const hint = await callGemini([{ text: prompt }]);
       hintDiv.innerHTML = `💡 <strong>힌트:</strong> ${hint}`;
       await speakText(hint);
-    } catch {
-      hintDiv.textContent = '힌트를 불러오지 못했어요.';
+    } catch(e) {
+      console.error('힌트 오류:', e);
+      hintDiv.textContent = '힌트를 불러오지 못했어요. 다시 눌러봐요.';
     }
   }
 
