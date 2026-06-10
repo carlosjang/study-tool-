@@ -842,40 +842,85 @@
   <div class="card" id="uploadCard">
     <div class="card-title"><div class="icon">📸</div> 1단계 · 교재 사진 업로드</div>
 
-    <div class="upload-area" id="uploadArea">
-      <div class="upload-icon">📖</div>
-      <div class="upload-text">여기를 눌러서 사진을 선택하세요</div>
-      <div class="upload-sub">교과서, 문제집, 학습지 모두 가능해요</div>
-      <div class="upload-buttons">
-        <label class="btn-upload-type">
-          📷 카메라로 찍기
-          <input type="file" accept="image/*" capture="environment" onchange="handleFile(this.files[0])">
+    <!-- 업로드 버튼 -->
+    <div style="display:flex; gap:10px; margin-bottom:16px;">
+      <label class="btn-upload-type" style="flex:1; justify-content:center; display:flex; align-items:center;">
+        📷 카메라로 찍기
+        <input type="file" accept="image/*" capture="environment" onchange="addFiles(this.files)">
+      </label>
+      <label class="btn-upload-type" style="flex:1; justify-content:center; display:flex; align-items:center;">
+        🖼️ 갤러리에서 선택
+        <input type="file" accept="image/*" multiple onchange="addFiles(this.files)">
+      </label>
+    </div>
+
+    <!-- 추가된 사진 목록 -->
+    <div id="imageList" style="display:none;">
+      <div style="font-size:0.85rem; color:var(--text2); font-weight:700; margin-bottom:10px;">
+        추가된 사진 <span id="imageCount">0</span>장 · 순서를 확인하세요
+      </div>
+      <div id="imageThumbs" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;"></div>
+      <div style="display:flex; gap:10px;">
+        <label class="btn-secondary" style="cursor:pointer; display:flex; align-items:center; gap:4px;">
+          ➕ 사진 추가
+          <input type="file" accept="image/*" capture="environment" onchange="addFiles(this.files)" style="display:none;">
         </label>
-        <label class="btn-upload-type">
-          🖼️ 갤러리에서 선택
-          <input type="file" accept="image/*" onchange="handleFile(this.files[0])">
+        <label class="btn-secondary" style="cursor:pointer; display:flex; align-items:center; gap:4px;">
+          🖼️ 갤러리 추가
+          <input type="file" accept="image/*" multiple onchange="addFiles(this.files)" style="display:none;">
         </label>
       </div>
+      <button class="btn-primary" onclick="proceedToRoi()" style="margin-top:14px;">
+        ✂️ 영역 지정하러 가기 →
+      </button>
+    </div>
+
+    <!-- 빈 상태 안내 -->
+    <div id="uploadEmpty" class="upload-area" style="border:2px dashed var(--border); border-radius:12px; padding:40px 20px; text-align:center;">
+      <div class="upload-icon">📖</div>
+      <div class="upload-text">위 버튼으로 사진을 추가해주세요</div>
+      <div class="upload-sub">여러 장 추가 가능 · 교과서, 문제집, 학습지 모두 OK</div>
     </div>
   </div>
 
   <!-- STEP 2: ROI 선택 -->
   <div class="card hidden" id="roiCard">
     <div class="card-title"><div class="icon">✂️</div> 2단계 · 분석할 영역 지정</div>
-    <div class="roi-guide">드래그해서 분석할 텍스트 영역을 선택하세요 (여러 개 가능)</div>
+
+    <!-- 페이지 네비게이션 -->
+    <div id="pageNav" style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+      <button class="btn-secondary" onclick="prevPage()" id="prevBtn" style="padding:6px 12px;">◀</button>
+      <span style="font-size:0.9rem; font-weight:700; color:var(--text2);">
+        <span id="curPageNum">1</span> / <span id="totalPageNum">1</span> 페이지
+      </span>
+      <button class="btn-secondary" onclick="nextPage()" id="nextBtn" style="padding:6px 12px;">▶</button>
+    </div>
+
+    <div class="roi-guide">영역을 선택해서 추가하세요. 없으면 전체 이미지를 사용해요.</div>
 
     <div style="margin-top: 12px;">
       <div class="preview-wrap" id="previewWrap">
-        <img id="previewImg" alt="업로드된 이미지">
-        <canvas id="roiCanvas"></canvas>
+        <img id="previewImg" alt="업로드된 이미지" style="width:100%; display:block; border-radius:12px;">
       </div>
+    </div>
+
+    <!-- ROI 영역 선택 버튼들 -->
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
+      <button class="btn-secondary" onclick="addRoiPreset('top')">⬆️ 위쪽</button>
+      <button class="btn-secondary" onclick="addRoiPreset('topHalf')">↑ 위 절반</button>
+      <button class="btn-secondary" onclick="addRoiPreset('middle')">↔️ 중간</button>
+      <button class="btn-secondary" onclick="addRoiPreset('bottomHalf')">↓ 아래 절반</button>
+      <button class="btn-secondary" onclick="addRoiPreset('bottom')">⬇️ 아래쪽</button>
+      <button class="btn-secondary" onclick="addRoiPreset('left')">◀ 왼쪽</button>
+      <button class="btn-secondary" onclick="addRoiPreset('right')">▶ 오른쪽</button>
     </div>
 
     <div class="roi-list" id="roiList"></div>
 
-    <div style="display:flex; gap:10px; margin-top:14px;">
-      <button class="btn-secondary" onclick="clearRois()">전체 지우기</button>
+    <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+      <button class="btn-secondary" onclick="clearRois()">이 페이지 지우기</button>
       <button class="btn-secondary" onclick="useFullImage()">전체 이미지 사용</button>
+      <button class="btn-secondary" onclick="useAllFullImages()">모든 페이지 전체</button>
     </div>
 
     <button class="btn-primary" id="analyzeBtn" onclick="startAnalysis()" disabled>
@@ -1023,9 +1068,8 @@
     profile: 'daughter',
     apiKey: '',
     ttsKey: '',
-    image: null,
-    imageBase64: '',
-    rois: [],
+    images: [],        // [{file, base64, rois:[]}] 다중 이미지
+    currentPage: 0,    // 현재 편집 중인 페이지
     ocrText: '',
     isMath: false,
     summaryGenerated: false,
@@ -1090,129 +1134,172 @@
     showToast('API 키가 저장됐어요!');
   }
 
-  // ==================== 파일 업로드 ====================
-  function handleFile(file) {
-    if (!file) return;
+  // ==================== 다중 이미지 업로드 ====================
+  function addFiles(files) {
+    if (!files || files.length === 0) return;
     if (!state.apiKey) {
       document.getElementById('apiCard').style.display = 'block';
       showToast('먼저 API 키를 입력해주세요');
       return;
     }
-    state.image = file;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      state.imageBase64 = e.target.result.split(',')[1];
-      document.getElementById('previewImg').src = e.target.result;
-      document.getElementById('uploadCard').classList.add('hidden');
-      document.getElementById('roiCard').classList.remove('hidden');
-      setStep(2);
 
-      setTimeout(initCanvas, 100);
-    };
-    reader.readAsDataURL(file);
+    const promises = Array.from(files).map(file => new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        resolve({
+          file,
+          base64: e.target.result.split(',')[1],
+          dataUrl: e.target.result,
+          rois: []
+        });
+      };
+      reader.readAsDataURL(file);
+    }));
+
+    Promise.all(promises).then(newImages => {
+      state.images = [...state.images, ...newImages];
+      updateImageList();
+    });
+  }
+
+  function updateImageList() {
+    const count = state.images.length;
+    document.getElementById('imageCount').textContent = count;
+
+    if (count > 0) {
+      document.getElementById('imageList').style.display = 'block';
+      document.getElementById('uploadEmpty').style.display = 'none';
+    } else {
+      document.getElementById('imageList').style.display = 'none';
+      document.getElementById('uploadEmpty').style.display = 'block';
+    }
+
+    const thumbs = document.getElementById('imageThumbs');
+    thumbs.innerHTML = state.images.map((img, i) => `
+      <div style="position:relative; width:80px;">
+        <img src="${img.dataUrl}" style="width:80px; height:80px; object-fit:cover; border-radius:8px; border:2px solid ${img.rois.length > 0 ? 'var(--accent3)' : 'var(--border)'};">
+        <div style="position:absolute; top:2px; left:2px; background:var(--accent); color:white; border-radius:4px; padding:1px 6px; font-size:0.7rem; font-weight:800;">${i+1}</div>
+        ${img.rois.length > 0 ? `<div style="position:absolute; bottom:2px; left:2px; background:var(--accent3); color:#000; border-radius:4px; padding:1px 4px; font-size:0.65rem; font-weight:800;">ROI ${img.rois.length}</div>` : ''}
+        <button onclick="removeImage(${i})" style="position:absolute; top:2px; right:2px; background:var(--accent2); border:none; color:white; border-radius:4px; width:18px; height:18px; font-size:0.7rem; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+      </div>
+    `).join('');
+  }
+
+  function removeImage(i) {
+    state.images.splice(i, 1);
+    updateImageList();
+  }
+
+  function proceedToRoi() {
+    if (state.images.length === 0) { showToast('사진을 먼저 추가해주세요'); return; }
+    state.currentPage = 0;
+    document.getElementById('uploadCard').classList.add('hidden');
+    document.getElementById('roiCard').classList.remove('hidden');
+    setStep(2);
+    updatePageNav();
+    loadPageForRoi(0);
+  }
+
+  // ==================== 페이지 네비게이션 ====================
+  function updatePageNav() {
+    const total = state.images.length;
+    document.getElementById('curPageNum').textContent = state.currentPage + 1;
+    document.getElementById('totalPageNum').textContent = total;
+    document.getElementById('prevBtn').disabled = state.currentPage === 0;
+    document.getElementById('nextBtn').disabled = state.currentPage === total - 1;
+    document.getElementById('pageNav').style.display = total > 1 ? 'flex' : 'none';
+  }
+
+  function prevPage() {
+    if (state.currentPage > 0) {
+      state.currentPage--;
+      loadPageForRoi(state.currentPage);
+      updatePageNav();
+    }
+  }
+
+  function nextPage() {
+    if (state.currentPage < state.images.length - 1) {
+      state.currentPage++;
+      loadPageForRoi(state.currentPage);
+      updatePageNav();
+    }
+  }
+
+  function loadPageForRoi(pageIdx) {
+    const img = state.images[pageIdx];
+    document.getElementById('previewImg').src = img.dataUrl;
+    setTimeout(() => {
+      initCanvas();
+      // 기존 ROI 복원
+      state.rois = img.rois || [];
+      drawRois();
+      updateRoiList();
+      checkAnalyzeBtn();
+    }, 100);
+  }
+
+  function saveCurrentPageRois() {
+    if (state.images[state.currentPage]) {
+      state.images[state.currentPage].rois = [...(state.rois || [])];
+    }
+  }
+
+  function checkAnalyzeBtn() {
+    const hasAnyRoi = state.images.some(img => img.rois.length > 0);
+    document.getElementById('analyzeBtn').disabled = !hasAnyRoi;
+  }
+
+  function useAllFullImages() {
+    state.images.forEach(img => {
+      img.rois = [{ x: 0, y: 0, w: 1, h: 1 }];
+    });
+    state.rois = [{ x: 0, y: 0, w: 1, h: 1 }];
+    drawRois();
+    updateRoiList();
+    checkAnalyzeBtn();
+    updateImageList();
+    showToast('모든 페이지 전체 이미지로 설정됐어요!');
   }
 
   // ==================== ROI 캔버스 ====================
   function initCanvas() {
-    const img = document.getElementById('previewImg');
-    const canvas = document.getElementById('roiCanvas');
-    canvas.width = img.offsetWidth;
-    canvas.height = img.offsetHeight;
-
-    canvas.onmousedown = startDraw;
-    canvas.onmousemove = duringDraw;
-    canvas.onmouseup = endDraw;
-    canvas.ontouchstart = (e) => { e.preventDefault(); startDraw(e.touches[0]); };
-    canvas.ontouchmove = (e) => { e.preventDefault(); duringDraw(e.touches[0]); };
-    canvas.ontouchend = (e) => { e.preventDefault(); endDraw(e.changedTouches[0]); };
-
-    drawRois();
+    // 캔버스 드래그 제거, 이미지만 로드
   }
 
-  function getPos(e) {
-    const canvas = document.getElementById('roiCanvas');
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: (e.clientX - rect.left) / rect.width,
-      y: (e.clientY - rect.top) / rect.height
-    };
-  }
+  // ROI 프리셋 버튼
+  const ROI_PRESETS = {
+    top:        { x: 0, y: 0,    w: 1, h: 0.25, label: '위쪽 (25%)' },
+    topHalf:    { x: 0, y: 0,    w: 1, h: 0.5,  label: '위 절반' },
+    middle:     { x: 0, y: 0.25, w: 1, h: 0.5,  label: '중간 (50%)' },
+    bottomHalf: { x: 0, y: 0.5,  w: 1, h: 0.5,  label: '아래 절반' },
+    bottom:     { x: 0, y: 0.75, w: 1, h: 0.25, label: '아래쪽 (25%)' },
+    left:       { x: 0, y: 0,    w: 0.5, h: 1,  label: '왼쪽 절반' },
+    right:      { x: 0.5, y: 0,  w: 0.5, h: 1,  label: '오른쪽 절반' },
+  };
 
-  function startDraw(e) {
-    const pos = getPos(e);
-    state.isDrawing = true;
-    state.startX = pos.x;
-    state.startY = pos.y;
-  }
-
-  function duringDraw(e) {
-    if (!state.isDrawing) return;
-    const pos = getPos(e);
-    state.tempRect = {
-      x: Math.min(state.startX, pos.x),
-      y: Math.min(state.startY, pos.y),
-      w: Math.abs(pos.x - state.startX),
-      h: Math.abs(pos.y - state.startY)
-    };
-    drawRois();
-  }
-
-  function endDraw(e) {
-    if (!state.isDrawing) return;
-    state.isDrawing = false;
-    if (state.tempRect && state.tempRect.w > 0.02 && state.tempRect.h > 0.02) {
-      state.rois.push({ ...state.tempRect });
-      updateRoiList();
-      document.getElementById('analyzeBtn').disabled = false;
-    }
-    state.tempRect = null;
-    drawRois();
-  }
-
-  function drawRois() {
-    const canvas = document.getElementById('roiCanvas');
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const W = canvas.width, H = canvas.height;
-
-    state.rois.forEach((r, i) => {
-      ctx.strokeStyle = '#7c6af7';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([]);
-      ctx.strokeRect(r.x * W, r.y * H, r.w * W, r.h * H);
-      ctx.fillStyle = 'rgba(124,106,247,0.12)';
-      ctx.fillRect(r.x * W, r.y * H, r.w * W, r.h * H);
-
-      // 번호 뱃지
-      ctx.fillStyle = '#7c6af7';
-      ctx.beginPath();
-      ctx.arc(r.x * W + 14, r.y * H + 14, 12, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = 'white';
-      ctx.font = 'bold 11px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(i + 1, r.x * W + 14, r.y * H + 14);
-    });
-
-    if (state.tempRect) {
-      const r = state.tempRect;
-      ctx.strokeStyle = '#f76a8a';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 4]);
-      ctx.strokeRect(r.x * W, r.y * H, r.w * W, r.h * H);
-      ctx.fillStyle = 'rgba(247,106,138,0.08)';
-      ctx.fillRect(r.x * W, r.y * H, r.w * W, r.h * H);
-    }
+  function addRoiPreset(type) {
+    if (!state.rois) state.rois = [];
+    const preset = ROI_PRESETS[type];
+    if (!preset) return;
+    state.rois.push({ ...preset });
+    saveCurrentPageRois();
+    updateRoiList();
+    checkAnalyzeBtn();
+    updateImageList();
+    showToast(`${preset.label} 추가됐어요`);
   }
 
   function updateRoiList() {
     const list = document.getElementById('roiList');
+    if (!state.rois || state.rois.length === 0) {
+      list.innerHTML = '';
+      return;
+    }
     list.innerHTML = state.rois.map((r, i) => `
       <div class="roi-item">
         <div class="roi-num">${i + 1}</div>
-        <div class="roi-info">영역 ${i + 1} · ${Math.round(r.w * 100)}% × ${Math.round(r.h * 100)}%</div>
+        <div class="roi-info">${r.label || `영역 ${i+1}`} · ${Math.round(r.w * 100)}% × ${Math.round(r.h * 100)}%</div>
         <button class="roi-delete" onclick="deleteRoi(${i})">✕</button>
       </div>
     `).join('');
@@ -1220,75 +1307,89 @@
 
   function deleteRoi(i) {
     state.rois.splice(i, 1);
+    saveCurrentPageRois();
     updateRoiList();
-    drawRois();
-    if (state.rois.length === 0) document.getElementById('analyzeBtn').disabled = true;
+    checkAnalyzeBtn();
   }
 
   function clearRois() {
     state.rois = [];
+    saveCurrentPageRois();
     updateRoiList();
-    drawRois();
-    document.getElementById('analyzeBtn').disabled = true;
+    checkAnalyzeBtn();
+    updateImageList();
   }
 
   function useFullImage() {
-    state.rois = [{ x: 0, y: 0, w: 1, h: 1 }];
+    state.rois = [{ x: 0, y: 0, w: 1, h: 1, label: '전체 이미지' }];
+    saveCurrentPageRois();
     updateRoiList();
-    drawRois();
-    document.getElementById('analyzeBtn').disabled = false;
+    checkAnalyzeBtn();
+    updateImageList();
   }
 
-  // ==================== ROI 크롭 ====================
-  async function cropRois() {
-    const img = document.getElementById('previewImg');
-    const naturalW = img.naturalWidth;
-    const naturalH = img.naturalHeight;
-
-    const crops = [];
-    for (const r of state.rois) {
-      const canvas = document.createElement('canvas');
-      const cw = Math.round(r.w * naturalW);
-      const ch = Math.round(r.h * naturalH);
-      canvas.width = cw;
-      canvas.height = ch;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img,
-        r.x * naturalW, r.y * naturalH, cw, ch,
-        0, 0, cw, ch
-      );
-      const b64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
-      crops.push(b64);
+  // ==================== ROI 크롭 (다중 페이지) ====================
+  async function cropAllRois() {
+    const allParts = [];
+    for (const imgData of state.images) {
+      if (!imgData.rois || imgData.rois.length === 0) continue;
+      const img = new Image();
+      img.src = imgData.dataUrl;
+      await new Promise(r => { img.onload = r; });
+      for (const r of imgData.rois) {
+        const canvas = document.createElement('canvas');
+        const cw = Math.round(r.w * img.naturalWidth);
+        const ch = Math.round(r.h * img.naturalHeight);
+        canvas.width = cw;
+        canvas.height = ch;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, r.x * img.naturalWidth, r.y * img.naturalHeight, cw, ch, 0, 0, cw, ch);
+        allParts.push({ inlineData: { mimeType: 'image/jpeg', data: canvas.toDataURL('image/jpeg', 0.9).split(',')[1] } });
+      }
     }
-    return crops;
+    return allParts;
   }
 
   // ==================== AI 분석 ====================
   async function startAnalysis() {
     if (!state.apiKey) { showToast('API 키를 먼저 설정해주세요'); return; }
 
+    saveCurrentPageRois();
+
     setStep(3);
     document.getElementById('roiCard').classList.add('hidden');
     document.getElementById('loadingWrap').style.display = 'block';
-    document.getElementById('loadingText').textContent = 'AI가 교재 내용을 읽고 있어요...';
+    document.getElementById('loadingText').textContent = `AI가 ${state.images.length}페이지를 읽고 있어요...`;
 
     try {
-      const crops = await cropRois();
-      const grade = state.profile === 'daughter' ? '중학교 2학년' : '초등학교 5학년';
+      const imageParts = await cropAllRois();
+      if (imageParts.length === 0) {
+        showToast('ROI 영역을 먼저 지정해주세요');
+        document.getElementById('loadingWrap').style.display = 'none';
+        document.getElementById('roiCard').classList.remove('hidden');
+        return;
+      }
 
-      const imageParts = crops.map(b64 => ({
-        inlineData: { mimeType: 'image/jpeg', data: b64 }
-      }));
+      const extractPrompt = `이 교재 이미지${imageParts.length > 1 ? '들' : ''}를 분석해주세요.
 
-      // 1단계: 텍스트 추출
-      const extractPrompt = `이 교재 이미지에서 텍스트를 정확하게 추출해주세요. 보이는 글자를 그대로 옮기세요. 수식은 x^2, sqrt(4), 1/2 형태로 표현하세요. 추출된 텍스트만 출력하세요.`;
-      const extractedText = await callGemini([...imageParts, { text: extractPrompt }]);
-      state.ocrText = extractedText;
+다음 JSON 형식으로만 응답하세요 (다른 텍스트 없이):
+{"isMath": true 또는 false, "text": "추출한 텍스트"}
 
-      // 2단계: 수학 여부 판단
-      document.getElementById('loadingText').textContent = '내용 분석 중...';
-      const mathCheck = await callGemini([{ text: `다음 텍스트가 수학 문제나 수학 개념 설명이면 "yes", 아니면 "no"만 답하세요.\n\n${extractedText.slice(0, 200)}` }]);
-      state.isMath = mathCheck.toLowerCase().includes('yes');
+규칙:
+- text: 이미지의 텍스트를 순서대로 추출. 수식은 x^2, sqrt(4), 1/2 형태로
+- isMath: 수학 문제/수식/계산이 주내용이면 true, 아니면 false`;
+
+      const response = await callGemini([...imageParts, { text: extractPrompt }]);
+      let parsed;
+      try {
+        const cleaned = response.replace(/```json|```/g, '').trim();
+        const si = cleaned.indexOf('{'), ei = cleaned.lastIndexOf('}');
+        parsed = JSON.parse(si !== -1 ? cleaned.substring(si, ei + 1) : cleaned);
+      } catch {
+        parsed = { isMath: false, text: response };
+      }
+      state.ocrText = parsed.text || response;
+      state.isMath = parsed.isMath || false;
 
       document.getElementById('loadingWrap').style.display = 'none';
       document.getElementById('resultSection').style.display = 'block';
@@ -1297,13 +1398,11 @@
 
       if (state.isMath) {
         showToast('수학 문제 감지! 수학 모드로 분석할게요');
-        // 수학 모드: 탭을 수학풀이로 변경
         document.querySelector('.result-tabs').innerHTML = `
           <button class="tab-btn active" onclick="showTab('ocr')">📝 원문 검토</button>
           <button class="tab-btn" onclick="showTab('math')">🔢 수학 풀이</button>
           <button class="tab-btn" onclick="showTab('quiz')">❓ 문제풀기</button>
         `;
-        // 수학 탭 생성
         if (!document.getElementById('tab-math')) {
           const mathTab = document.createElement('div');
           mathTab.className = 'tab-content';
@@ -1311,20 +1410,15 @@
           mathTab.innerHTML = `
             <div class="card">
               <div class="card-title"><div class="icon">🔢</div> 수학 개념 & 단계별 풀이</div>
-              <div id="mathContent">
-                <div style="color:var(--text2);text-align:center;padding:20px;">원문 검토 완료 후 생성돼요</div>
-              </div>
-              <button class="btn-primary" onclick="generateMathSolution()" id="mathBtn" style="display:none;">
-                🔢 풀이 생성하기
-              </button>
+              <div id="mathContent"><div style="color:var(--text2);text-align:center;padding:20px;">원문 검토 완료 후 생성돼요</div></div>
+              <button class="btn-primary" onclick="generateMathSolution()" id="mathBtn" style="display:none;">🔢 풀이 생성하기</button>
             </div>
           `;
           document.getElementById('tab-summary').parentNode.insertBefore(mathTab, document.getElementById('tab-quiz'));
         }
       } else {
-        showToast('분석 완료! 내용을 확인해보세요');
+        showToast(`${state.images.length}페이지 분석 완료!`);
       }
-
       setStep(4);
 
     } catch (err) {
@@ -1689,8 +1783,8 @@ ${state.ocrText}
   // ==================== 처음으로 ====================
   function resetAll() {
     saveQuizzes();
-    state.image = null;
-    state.imageBase64 = '';
+    state.images = [];
+    state.currentPage = 0;
     state.rois = [];
     state.ocrText = '';
     state.isMath = false;
@@ -1708,6 +1802,10 @@ ${state.ocrText}
     document.getElementById('summaryContent').innerHTML = '<div style="color:var(--text2); text-align:center; padding:20px;">원문 검토를 완료하면 요약이 생성돼요</div>';
     document.getElementById('quizList').innerHTML = '';
     document.getElementById('scoreBar').style.display = 'none';
+    document.getElementById('imageList').style.display = 'none';
+    document.getElementById('uploadEmpty').style.display = 'block';
+    document.getElementById('imageThumbs').innerHTML = '';
+    document.getElementById('imageCount').textContent = '0';
     document.querySelector('.result-tabs').innerHTML = `
       <button class="tab-btn active" onclick="showTab('ocr')">📝 원문 검토</button>
       <button class="tab-btn" onclick="showTab('summary')">📌 요약</button>
