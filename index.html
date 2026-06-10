@@ -896,23 +896,18 @@
       <button class="btn-secondary" onclick="nextPage()" id="nextBtn" style="padding:6px 12px;">▶</button>
     </div>
 
-    <div class="roi-guide">영역을 선택해서 추가하세요. 없으면 전체 이미지를 사용해요.</div>
+    <div class="roi-guide" id="roiGuide">영역 추가하기 버튼을 누른 후 드래그하세요</div>
+
+    <!-- 영역 추가 버튼 -->
+    <button class="btn-secondary" id="addRoiBtn" onclick="activateRoiDraw()" style="margin-top:10px; border-color:var(--accent); color:var(--accent);">
+      ✏️ 영역 추가하기
+    </button>
 
     <div style="margin-top: 12px;">
       <div class="preview-wrap" id="previewWrap">
-        <img id="previewImg" alt="업로드된 이미지" style="width:100%; display:block; border-radius:12px;">
+        <img id="previewImg" alt="업로드된 이미지">
+        <canvas id="roiCanvas"></canvas>
       </div>
-    </div>
-
-    <!-- ROI 영역 선택 버튼들 -->
-    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
-      <button class="btn-secondary" onclick="addRoiPreset('top')">⬆️ 위쪽</button>
-      <button class="btn-secondary" onclick="addRoiPreset('topHalf')">↑ 위 절반</button>
-      <button class="btn-secondary" onclick="addRoiPreset('middle')">↔️ 중간</button>
-      <button class="btn-secondary" onclick="addRoiPreset('bottomHalf')">↓ 아래 절반</button>
-      <button class="btn-secondary" onclick="addRoiPreset('bottom')">⬇️ 아래쪽</button>
-      <button class="btn-secondary" onclick="addRoiPreset('left')">◀ 왼쪽</button>
-      <button class="btn-secondary" onclick="addRoiPreset('right')">▶ 오른쪽</button>
     </div>
 
     <div class="roi-list" id="roiList"></div>
@@ -1263,39 +1258,130 @@
   }
 
   // ==================== ROI 캔버스 ====================
-  function initCanvas() {
-    // 캔버스 드래그 제거, 이미지만 로드
+  let roiDrawActive = false;
+
+  function activateRoiDraw() {
+    roiDrawActive = true;
+    document.getElementById('roiCanvas').style.cursor = 'crosshair';
+    document.getElementById('roiCanvas').style.pointerEvents = 'auto';
+    document.getElementById('addRoiBtn').textContent = '✏️ 드래그해서 영역 선택 중...';
+    document.getElementById('addRoiBtn').style.borderColor = 'var(--accent2)';
+    document.getElementById('addRoiBtn').style.color = 'var(--accent2)';
+    document.getElementById('roiGuide').textContent = '지금 드래그해서 영역을 선택하세요!';
+    document.getElementById('roiGuide').style.color = 'var(--accent2)';
   }
 
-  // ROI 프리셋 버튼
-  const ROI_PRESETS = {
-    top:        { x: 0, y: 0,    w: 1, h: 0.25, label: '위쪽 (25%)' },
-    topHalf:    { x: 0, y: 0,    w: 1, h: 0.5,  label: '위 절반' },
-    middle:     { x: 0, y: 0.25, w: 1, h: 0.5,  label: '중간 (50%)' },
-    bottomHalf: { x: 0, y: 0.5,  w: 1, h: 0.5,  label: '아래 절반' },
-    bottom:     { x: 0, y: 0.75, w: 1, h: 0.25, label: '아래쪽 (25%)' },
-    left:       { x: 0, y: 0,    w: 0.5, h: 1,  label: '왼쪽 절반' },
-    right:      { x: 0.5, y: 0,  w: 0.5, h: 1,  label: '오른쪽 절반' },
-  };
+  function deactivateRoiDraw() {
+    roiDrawActive = false;
+    document.getElementById('roiCanvas').style.cursor = 'default';
+    document.getElementById('roiCanvas').style.pointerEvents = 'none';
+    document.getElementById('addRoiBtn').textContent = '✏️ 영역 추가하기';
+    document.getElementById('addRoiBtn').style.borderColor = 'var(--accent)';
+    document.getElementById('addRoiBtn').style.color = 'var(--accent)';
+    document.getElementById('roiGuide').textContent = '영역 추가하기 버튼을 누른 후 드래그하세요';
+    document.getElementById('roiGuide').style.color = '';
+  }
 
-  function addRoiPreset(type) {
-    if (!state.rois) state.rois = [];
-    const preset = ROI_PRESETS[type];
-    if (!preset) return;
-    state.rois.push({ ...preset });
-    saveCurrentPageRois();
-    updateRoiList();
-    checkAnalyzeBtn();
-    updateImageList();
-    showToast(`${preset.label} 추가됐어요`);
+  function initCanvas() {
+    const img = document.getElementById('previewImg');
+    const canvas = document.getElementById('roiCanvas');
+    canvas.width = img.offsetWidth;
+    canvas.height = img.offsetHeight;
+    canvas.style.pointerEvents = 'none'; // 기본은 비활성
+
+    canvas.onmousedown = (e) => { if (roiDrawActive) startDraw(e); };
+    canvas.onmousemove = (e) => { if (roiDrawActive) duringDraw(e); };
+    canvas.onmouseup = (e) => { if (roiDrawActive) endDraw(e); };
+    canvas.ontouchstart = (e) => { if (roiDrawActive) { e.preventDefault(); startDraw(e.touches[0]); } };
+    canvas.ontouchmove = (e) => { if (roiDrawActive) { e.preventDefault(); duringDraw(e.touches[0]); } };
+    canvas.ontouchend = (e) => { if (roiDrawActive) { e.preventDefault(); endDraw(e.changedTouches[0]); } };
+
+    drawRois();
+  }
+
+  function getPos(e) {
+    const canvas = document.getElementById('roiCanvas');
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) / rect.width,
+      y: (e.clientY - rect.top) / rect.height
+    };
+  }
+
+  function startDraw(e) {
+    const pos = getPos(e);
+    state.isDrawing = true;
+    state.startX = pos.x;
+    state.startY = pos.y;
+  }
+
+  function duringDraw(e) {
+    if (!state.isDrawing) return;
+    const pos = getPos(e);
+    state.tempRect = {
+      x: Math.min(state.startX, pos.x),
+      y: Math.min(state.startY, pos.y),
+      w: Math.abs(pos.x - state.startX),
+      h: Math.abs(pos.y - state.startY)
+    };
+    drawRois();
+  }
+
+  function endDraw(e) {
+    if (!state.isDrawing) return;
+    state.isDrawing = false;
+    if (state.tempRect && state.tempRect.w > 0.02 && state.tempRect.h > 0.02) {
+      if (!state.rois) state.rois = [];
+      state.rois.push({ ...state.tempRect, label: `영역 ${state.rois.length + 1}` });
+      saveCurrentPageRois();
+      updateRoiList();
+      checkAnalyzeBtn();
+      updateImageList();
+    }
+    state.tempRect = null;
+    drawRois();
+    deactivateRoiDraw(); // 한 번 그리면 자동으로 드래그 모드 해제
+  }
+
+  function drawRois() {
+    const canvas = document.getElementById('roiCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const W = canvas.width, H = canvas.height;
+
+    (state.rois || []).forEach((r, i) => {
+      ctx.strokeStyle = '#7c6af7';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([]);
+      ctx.strokeRect(r.x * W, r.y * H, r.w * W, r.h * H);
+      ctx.fillStyle = 'rgba(124,106,247,0.12)';
+      ctx.fillRect(r.x * W, r.y * H, r.w * W, r.h * H);
+      ctx.fillStyle = '#7c6af7';
+      ctx.beginPath();
+      ctx.arc(r.x * W + 14, r.y * H + 14, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(i + 1, r.x * W + 14, r.y * H + 14);
+    });
+
+    if (state.tempRect) {
+      const r = state.tempRect;
+      ctx.strokeStyle = '#f76a8a';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(r.x * W, r.y * H, r.w * W, r.h * H);
+      ctx.fillStyle = 'rgba(247,106,138,0.08)';
+      ctx.fillRect(r.x * W, r.y * H, r.w * W, r.h * H);
+    }
   }
 
   function updateRoiList() {
     const list = document.getElementById('roiList');
-    if (!state.rois || state.rois.length === 0) {
-      list.innerHTML = '';
-      return;
-    }
+    if (!state.rois || state.rois.length === 0) { list.innerHTML = ''; return; }
     list.innerHTML = state.rois.map((r, i) => `
       <div class="roi-item">
         <div class="roi-num">${i + 1}</div>
@@ -1309,6 +1395,7 @@
     state.rois.splice(i, 1);
     saveCurrentPageRois();
     updateRoiList();
+    drawRois();
     checkAnalyzeBtn();
   }
 
@@ -1316,6 +1403,7 @@
     state.rois = [];
     saveCurrentPageRois();
     updateRoiList();
+    drawRois();
     checkAnalyzeBtn();
     updateImageList();
   }
@@ -1324,6 +1412,7 @@
     state.rois = [{ x: 0, y: 0, w: 1, h: 1, label: '전체 이미지' }];
     saveCurrentPageRois();
     updateRoiList();
+    drawRois();
     checkAnalyzeBtn();
     updateImageList();
   }
@@ -1431,37 +1520,37 @@
     }
   }
 
-  // ==================== Gemini API (프록시 경유) ====================
-  async function callGemini(parts, systemPrompt) {
+  // ==================== Gemini API (프록시 경유, 재시도 포함) ====================
+  async function callGemini(parts, systemPrompt, retries = 3) {
     const body = {
       contents: [{ role: 'user', parts }],
-      generationConfig: {
-        temperature: 0.4,
-        maxOutputTokens: 4096
-      }
+      generationConfig: { temperature: 0.4, maxOutputTokens: 4096 }
     };
+    if (systemPrompt) body.systemInstruction = { parts: [{ text: systemPrompt }] };
 
-    if (systemPrompt) {
-      body.systemInstruction = { parts: [{ text: systemPrompt }] };
+    for (let attempt = 0; attempt < retries; attempt++) {
+      const res = await fetch('/api/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'gemini', apiKey: state.apiKey, body })
+      });
+
+      if (res.status === 429) {
+        const wait = (attempt + 1) * 3000;
+        document.getElementById('loadingText') && (document.getElementById('loadingText').textContent = `잠시 대기 중... (${wait/1000}초)`);
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || err.error || 'API 오류');
+      }
+
+      const data = await res.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     }
-
-    const res = await fetch('/api/proxy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: 'gemini',
-        apiKey: state.apiKey,
-        body
-      })
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error?.message || err.error || 'API 오류');
-    }
-
-    const data = await res.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    throw new Error('요청 한도 초과. 잠시 후 다시 시도해주세요.');
   }
 
   // ==================== OCR 편집 ====================
